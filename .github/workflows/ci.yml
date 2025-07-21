@@ -1,0 +1,138 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  python-tests:
+    name: Python Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.9, 3.10, 3.11]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        version: "latest"
+
+    - name: Set up Python ${{ matrix.python-version }}
+      run: uv python install ${{ matrix.python-version }}
+
+    - name: Install dependencies
+      run: uv sync --all-extras --dev
+
+    - name: Run linting
+      run: |
+        uv run ruff check src tests
+        uv run ruff format --check src tests
+
+    - name: Run type checking
+      run: uv run mypy src
+
+    - name: Run tests
+      run: uv run pytest --cov=src --cov-report=xml --cov-report=term-missing
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: python
+        name: codecov-umbrella
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+
+    - name: Set up Python
+      run: uv python install 3.11
+
+    - name: Install dependencies
+      run: uv sync --all-extras --dev
+
+    - name: Run security scan
+      run: uv run bandit -r src/
+
+    - name: Run dependency check
+      run: uv run safety check
+
+  build-test:
+    name: Build Test
+    runs-on: ubuntu-latest
+    needs: [python-tests]
+    
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+
+    - name: Set up Python
+      run: uv python install 3.11
+
+    - name: Install dependencies
+      run: uv sync --all-extras --dev
+
+    - name: Test project structure
+      run: |
+        uv run python scripts/simple_status.py
+        echo "✅ Project structure validated"
+
+    - name: Validate domain layer
+      run: |
+        uv run python -c "
+        from src.domain.entities import Text, Classification, AnalysisResult, User
+        from src.domain.value_objects import TextHash, ConfidenceScore, ApiKey
+        from src.utils.text_processor import TextProcessor
+        print('✅ All imports successful')
+        "
+
+  documentation:
+    name: Documentation Check
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Check README
+      run: |
+        if [ ! -f README.md ]; then
+          echo "❌ README.md not found"
+          exit 1
+        fi
+        echo "✅ README.md exists"
+
+    - name: Check LICENSE
+      run: |
+        if [ ! -f LICENSE ]; then
+          echo "❌ LICENSE not found"
+          exit 1
+        fi
+        echo "✅ LICENSE exists"
+
+    - name: Check CONTRIBUTING
+      run: |
+        if [ ! -f CONTRIBUTING.md ]; then
+          echo "❌ CONTRIBUTING.md not found"
+          exit 1
+        fi
+        echo "✅ CONTRIBUTING.md exists"
+
+    - name: Validate status files
+      run: |
+        if [ ! -f CURRENT_STATUS.md ]; then
+          echo "❌ CURRENT_STATUS.md not found"
+          exit 1
+        fi
+        echo "✅ Status documentation exists"
