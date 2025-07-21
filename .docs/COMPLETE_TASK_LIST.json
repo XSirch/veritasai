@@ -1,0 +1,215 @@
+{
+  "metadata": {
+    "title": "VeritasAI - Lista Completa de Tarefas de Desenvolvimento",
+    "description": "Roadmap executável completo com todas as 24 tarefas organizadas por sprint",
+    "total_tasks": 24,
+    "total_hours": 320,
+    "sprints": 4,
+    "created": "2024-01-15",
+    "format_version": "1.0"
+  },
+  "sprint_summary": {
+    "sprint_1": {
+      "tasks": ["VER-001", "VER-002", "VER-003", "VER-004", "VER-005"],
+      "hours": 50,
+      "focus": "Setup e Estrutura Base"
+    },
+    "sprint_2": {
+      "tasks": ["VER-006", "VER-007", "VER-008"],
+      "hours": 30,
+      "focus": "CI/CD e Qdrant"
+    },
+    "sprint_3": {
+      "tasks": ["VER-009", "VER-010", "VER-011"],
+      "hours": 40,
+      "focus": "Core Services - APIs"
+    },
+    "sprint_4": {
+      "tasks": ["VER-012", "VER-013", "VER-014", "VER-015"],
+      "hours": 66,
+      "focus": "LLM e Integração Híbrida"
+    },
+    "sprint_5": {
+      "tasks": ["VER-016", "VER-017", "VER-018", "VER-019"],
+      "hours": 52,
+      "focus": "Interface e UI"
+    },
+    "sprint_6": {
+      "tasks": ["VER-020", "VER-021", "VER-022"],
+      "hours": 42,
+      "focus": "Integração End-to-End"
+    },
+    "sprint_7": {
+      "tasks": ["VER-023", "VER-024"],
+      "hours": 36,
+      "focus": "Testes e Performance"
+    },
+    "sprint_8": {
+      "tasks": ["VER-025", "VER-026", "VER-027", "VER-028"],
+      "hours": 44,
+      "focus": "Polimento e Produção"
+    }
+  },
+  "complete_task_list": [
+    {
+      "id": "VER-006",
+      "name": "Configurar Docker e Qdrant",
+      "description": "Configurar Docker Compose com Qdrant v1.15.0, scripts de inicialização",
+      "sprint": 2,
+      "milestone": "M1.4",
+      "status": "not_started",
+      "priority": "critical",
+      "effort_hours": 10,
+      "story_points": 5,
+      "dependencies": ["VER-002"],
+      "assignee": "devops",
+      "acceptance_criteria": [
+        "docker-compose.yml configurado com Qdrant v1.15.0",
+        "Qdrant inicializa com configurações otimizadas",
+        "Collection 'veritas_embeddings' criada automaticamente",
+        "Health checks funcionando",
+        "Scripts de setup do Qdrant funcionando"
+      ],
+      "related_files": [
+        "docker-compose.yml",
+        "docker/docker-compose.test.yml",
+        "docker/qdrant/config/config.yaml",
+        "scripts/setup-qdrant.js"
+      ],
+      "prd_reference": "PRD seção 'Docker Setup Completo' linhas 810-890",
+      "technical_notes": "Usar quantização int8, HNSW otimizado, configurações de performance",
+      "definition_of_done": [
+        "Qdrant acessível em localhost:6333",
+        "Collection criada com schema correto",
+        "Testes de conectividade passando"
+      ]
+    },
+    {
+      "id": "VER-007",
+      "name": "Implementar estrutura base das entidades",
+      "description": "Criar entidades do domínio: Text, Classification, AnalysisResult, User",
+      "sprint": 2,
+      "milestone": "M1.2",
+      "status": "not_started",
+      "priority": "high",
+      "effort_hours": 8,
+      "story_points": 5,
+      "dependencies": ["VER-001"],
+      "assignee": "backend_dev",
+      "acceptance_criteria": [
+        "Entidade Text com validações implementada",
+        "Entidade Classification com enums definidos",
+        "Entidade AnalysisResult completa",
+        "Entidade User para configurações",
+        "Value objects (TextHash, ConfidenceScore) implementados"
+      ],
+      "related_files": [
+        "src/domain/entities/Text.js",
+        "src/domain/entities/Classification.js", 
+        "src/domain/entities/AnalysisResult.js",
+        "src/domain/entities/User.js",
+        "src/domain/value-objects/"
+      ],
+      "prd_reference": "PRD seção 'Domain Layer (Core Business Logic)' linhas 3185-3204",
+      "technical_notes": "Implementar validações: texto 10-2000 chars, confidence 0-1, classificações válidas",
+      "definition_of_done": [
+        "Entidades validadas com testes unitários",
+        "Validações funcionando corretamente",
+        "Documentação JSDoc completa"
+      ]
+    },
+    {
+      "id": "VER-008",
+      "name": "Configurar CI/CD pipeline",
+      "description": "Implementar GitHub Actions para testes, build, deploy automático",
+      "sprint": 2,
+      "milestone": "M1.3",
+      "status": "not_started",
+      "priority": "high",
+      "effort_hours": 12,
+      "story_points": 8,
+      "dependencies": ["VER-005", "VER-006"],
+      "assignee": "devops",
+      "acceptance_criteria": [
+        "GitHub Actions configurado para PR e push",
+        "Testes unitários executando no CI",
+        "Testes de integração com Qdrant",
+        "Build da extensão automatizado",
+        "Quality gates configurados"
+      ],
+      "related_files": [
+        ".github/workflows/main.yml",
+        ".github/workflows/release.yml"
+      ],
+      "prd_reference": "PRD seção 'CI/CD Pipeline' linhas 2349-2520",
+      "technical_notes": "Usar uv para Python, cache de dependências, matrix strategy para browsers",
+      "definition_of_done": [
+        "Pipeline executando sem erros",
+        "Testes passando no CI",
+        "Artifacts de build gerados"
+      ]
+    },
+    {
+      "id": "VER-009",
+      "name": "Implementar TextProcessor",
+      "description": "Criar classe para normalização e processamento de texto",
+      "sprint": 3,
+      "milestone": "M2.1",
+      "status": "not_started",
+      "priority": "critical",
+      "effort_hours": 10,
+      "story_points": 5,
+      "dependencies": ["VER-007"],
+      "assignee": "backend_dev",
+      "acceptance_criteria": [
+        "Normalização de texto implementada",
+        "Geração de hash SHA-256 funcionando",
+        "Validação de comprimento (10-2000 chars)",
+        "Extração de sentenças implementada",
+        "Testes unitários com coverage > 90%"
+      ],
+      "related_files": [
+        "src/utils/text-processor.js",
+        "tests/unit/text-processor.test.js"
+      ],
+      "prd_reference": "PRD seção 'Algoritmo de Normalização de Texto' linhas 700-750",
+      "technical_notes": "Normalizar Unicode NFD->NFC, remover caracteres de controle, lowercase para hash",
+      "definition_of_done": [
+        "Normalização consistente validada",
+        "Hash único para textos similares",
+        "Performance otimizada"
+      ]
+    },
+    {
+      "id": "VER-010",
+      "name": "Implementar KeywordExtractor",
+      "description": "Criar sistema de extração de palavras-chave usando compromise.js",
+      "sprint": 3,
+      "milestone": "M2.2",
+      "status": "not_started",
+      "priority": "high",
+      "effort_hours": 16,
+      "story_points": 8,
+      "dependencies": ["VER-009"],
+      "assignee": "backend_dev",
+      "acceptance_criteria": [
+        "Extração básica com compromise.js funcionando",
+        "Extração customizada para fact-checking",
+        "Detecção de claims e números",
+        "Análise de sentimento básica",
+        "Indicadores de urgência identificados"
+      ],
+      "related_files": [
+        "src/utils/keyword-extractor.js",
+        "tests/unit/keyword-extractor.test.js"
+      ],
+      "prd_reference": "PRD seção 'Extração Avançada de Termos-chave' linhas 751-898",
+      "technical_notes": "Usar compromise para NLP, filtrar stopwords, extrair entidades nomeadas",
+      "definition_of_done": [
+        "Keywords relevantes extraídas",
+        "Precisão > 80% em testes",
+        "Performance < 100ms para textos típicos"
+      ]
+    }
+  ]
+}

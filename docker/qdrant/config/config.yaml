@@ -1,0 +1,99 @@
+# Qdrant v1.15.0 Configuration for VeritasAI
+# Configuração otimizada para extensão de verificação de informações
+
+log_level: INFO
+
+service:
+  http_port: 6333
+  grpc_port: 6334
+  enable_cors: true
+  max_request_size_mb: 32
+  max_workers: 4
+  host: 0.0.0.0
+
+storage:
+  # Caminho de armazenamento
+  storage_path: /qdrant/storage
+  
+  # Configurações de performance
+  performance:
+    max_search_threads: 4
+    max_optimization_threads: 2
+  
+  # Configurações de otimização
+  optimizers:
+    # Threshold para usar memmap ao invés de RAM
+    memmap_threshold_kb: 200000
+    
+    # Configurações de indexação
+    indexing_threshold_kb: 20000
+    
+    # Configurações de flush
+    flush_interval_sec: 5
+    
+    # Configurações de vacuum
+    deleted_threshold: 0.2
+    vacuum_min_vector_number: 1000
+    
+    # Configurações de segmento
+    default_segment_number: 2
+    max_segment_size_kb: 200000
+
+# Configurações de cluster (desabilitado para uso local)
+cluster:
+  enabled: false
+
+# Configurações de telemetria (desabilitado para privacidade)
+telemetry:
+  enabled: false
+
+# Configurações de API
+api:
+  enable_ui: true
+  enable_cors: true
+  
+# Configurações de log
+log:
+  level: INFO
+  format: text
+  
+# Configurações de segurança
+security:
+  # API key será configurada via variável de ambiente se necessário
+  read_only: false
+
+# Configurações específicas para VeritasAI
+collections:
+  default_config:
+    # Configurações padrão para novas collections
+    vectors:
+      distance: Cosine
+      hnsw_config:
+        m: 16
+        ef_construct: 100
+        full_scan_threshold: 10000
+        max_indexing_threads: 4
+      quantization_config:
+        scalar:
+          type: int8
+          quantile: 0.99
+          always_ram: true
+    
+    optimizers_config:
+      deleted_threshold: 0.2
+      vacuum_min_vector_number: 1000
+      default_segment_number: 2
+      max_segment_size: 200000
+      memmap_threshold: 200000
+      indexing_threshold: 20000
+      flush_interval_sec: 5
+      max_optimization_threads: 2
+    
+    wal_config:
+      wal_capacity_mb: 32
+      wal_segments_ahead: 0
+    
+    shard_number: 1
+    replication_factor: 1
+    write_consistency_factor: 1
+    on_disk_payload: true

@@ -1,0 +1,990 @@
+{
+  "version": "2.0.0",
+  "options": {
+    "cwd": "${workspaceFolder}"
+  },
+  "presentation": {
+    "echo": true,
+    "reveal": "always",
+    "focus": false,
+    "panel": "shared",
+    "showReuseMessage": true,
+    "clear": false
+  },
+  "tasks": [
+    {
+      "label": "Show Development Roadmap",
+      "type": "shell",
+      "command": "cat",
+      "args": [".docs/DEVELOPMENT_ROADMAP.json"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Sprint 1: Setup Environment",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "setup"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Sprint 1: Run Tests",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "test"],
+      "group": "test",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Sprint 2: Start Qdrant",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "docker:up"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Development: Build Extension",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "build:dev"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Development: Watch Mode",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "dev"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": [],
+      "isBackground": true
+    },
+    {
+      "label": "Quality: Run All Tests",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "test:all"],
+      "group": "test",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Quality: Coverage Report",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "test:coverage"],
+      "group": "test",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Python: Run Tests",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "py:test"],
+      "group": "test",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Python: Format Code",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "py:format"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Roadmap: Show Progress",
+      "type": "shell",
+      "command": "python",
+      "args": ["scripts/roadmap_manager.py", "progress"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Roadmap: Show Tasks",
+      "type": "shell",
+      "command": "python",
+      "args": ["scripts/roadmap_manager.py", "tasks"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Roadmap: Team Workload",
+      "type": "shell",
+      "command": "python",
+      "args": ["scripts/roadmap_manager.py", "team"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    }
+  ],
+  "_project_metadata": {
+    "name": "VeritasAI - Extensão de Verificação de Informações",
+    "version": "1.0.0",
+    "duration_weeks": 8,
+    "total_sprints": 4,
+    "estimated_hours": 320,
+    "team_size": 4,
+    "start_date": "2024-01-15",
+    "end_date": "2024-03-11",
+    "roadmap_files": [
+      ".docs/DEVELOPMENT_ROADMAP.json",
+      ".docs/COMPLETE_TASK_LIST.json",
+      "scripts/roadmap_manager.py"
+    ],
+    "usage": "Use 'Show Development Roadmap' task to view complete roadmap"
+  },
+  "_development_tasks": [
+    {
+      "id": "VER-001",
+      "name": "Configurar estrutura inicial do projeto",
+      "description": "Criar estrutura de pastas conforme PRD, configurar package.json, pyproject.toml, e arquivos base",
+      "sprint": 1,
+      "milestone": "M1.1",
+      "status": "not_started",
+      "priority": "critical",
+      "effort_hours": 8,
+      "story_points": 3,
+      "dependencies": [],
+      "assignee": "devops",
+      "acceptance_criteria": [
+        "Estrutura de pastas criada conforme PRD seção 'Project Structure'",
+        "package.json configurado com todas as dependências",
+        "pyproject.toml configurado com uv",
+        "Arquivos de configuração (.env.example, .gitignore) criados",
+        "README.md atualizado com instruções básicas"
+      ],
+      "related_files": [
+        "package.json",
+        "pyproject.toml", 
+        ".env.example",
+        ".gitignore",
+        "README.md",
+        "src/",
+        "tests/",
+        "docker/"
+      ],
+      "prd_reference": "PRD seção 'Project Structure' linhas 23-93",
+      "technical_notes": "Seguir exatamente a estrutura definida no PRD. Configurar uv para Python e npm para Node.js",
+      "definition_of_done": [
+        "Estrutura validada por code review",
+        "Scripts de setup funcionando",
+        "Documentação atualizada"
+      ]
+    },
+    {
+      "id": "VER-002", 
+      "name": "Configurar ambiente de desenvolvimento",
+      "description": "Implementar scripts de setup automático, configurar ferramentas de desenvolvimento",
+      "sprint": 1,
+      "milestone": "M1.1",
+      "status": "not_started", 
+      "priority": "critical",
+      "effort_hours": 12,
+      "story_points": 5,
+      "dependencies": ["VER-001"],
+      "assignee": "devops",
+      "acceptance_criteria": [
+        "Script setup-dev.js funcionando completamente",
+        "Script setup_python.py configurando ambiente Python",
+        "Verificação automática de pré-requisitos",
+        "Instalação automática de dependências",
+        "Validação do ambiente configurado"
+      ],
+      "related_files": [
+        "scripts/setup-dev.js",
+        "scripts/setup_python.py",
+        ".python-version"
+      ],
+      "prd_reference": "PRD seção 'Configuração do Ambiente de Desenvolvimento' linhas 808-1200",
+      "technical_notes": "Implementar verificação de Node.js 16+, Python 3.9+, Docker 20+, uv instalado",
+      "definition_of_done": [
+        "Setup funciona em ambiente limpo",
+        "Todos os pré-requisitos verificados",
+        "Documentação de setup validada"
+      ]
+    },
+    {
+      "id": "VER-003",
+      "name": "Configurar Webpack e build system",
+      "description": "Configurar Webpack 5 para extensão de navegador, babel, loaders para CSS/assets",
+      "sprint": 1,
+      "milestone": "M1.2",
+      "status": "not_started",
+      "priority": "high", 
+      "effort_hours": 10,
+      "story_points": 5,
+      "dependencies": ["VER-001"],
+      "assignee": "frontend_dev",
+      "acceptance_criteria": [
+        "webpack.config.js configurado para Manifest V3",
+        "Build de desenvolvimento e produção funcionando",
+        "Hot reload configurado para desenvolvimento",
+        "Assets (CSS, imagens, fontes) processados corretamente",
+        "Source maps funcionando em desenvolvimento"
+      ],
+      "related_files": [
+        "webpack.config.js",
+        "babel.config.js",
+        ".babelrc"
+      ],
+      "prd_reference": "PRD seção 'Build Tool: Webpack 5 com manifest v3' linha 103",
+      "technical_notes": "Configurar para múltiplos entry points: background, content, popup, options",
+      "definition_of_done": [
+        "Build produz extensão válida",
+        "Manifest V3 compliance verificado",
+        "Performance de build otimizada"
+      ]
+    },
+    {
+      "id": "VER-004",
+      "name": "Criar manifest.json da extensão",
+      "description": "Implementar manifest.json completo com todas as permissões, content scripts e configurações",
+      "sprint": 1,
+      "milestone": "M1.2",
+      "status": "not_started",
+      "priority": "critical",
+      "effort_hours": 6,
+      "story_points": 3,
+      "dependencies": ["VER-001"],
+      "assignee": "frontend_dev",
+      "acceptance_criteria": [
+        "Manifest V3 válido e completo",
+        "Permissões mínimas necessárias definidas",
+        "Content scripts configurados",
+        "Background service worker definido",
+        "Icons e metadata configurados"
+      ],
+      "related_files": [
+        "manifest.json",
+        "src/assets/icons/"
+      ],
+      "prd_reference": "PRD seção 'Required Browser Permissions' linhas 395-408",
+      "technical_notes": "Usar permissões: storage, activeTab, scripting, contextMenus. Host permissions para APIs",
+      "definition_of_done": [
+        "Manifest validado pelo Chrome",
+        "Extensão carrega sem erros",
+        "Permissões justificadas e documentadas"
+      ]
+    },
+    {
+      "id": "VER-005",
+      "name": "Configurar sistema de testes",
+      "description": "Configurar Jest para testes unitários, Playwright para E2E, pytest para Python",
+      "sprint": 1,
+      "milestone": "M1.2",
+      "status": "not_started",
+      "priority": "high",
+      "effort_hours": 14,
+      "story_points": 8,
+      "dependencies": ["VER-002"],
+      "assignee": "qa",
+      "acceptance_criteria": [
+        "Jest configurado com mocks para Chrome APIs",
+        "Playwright configurado para testes E2E",
+        "pytest configurado com coverage",
+        "Scripts de teste funcionando",
+        "Coverage reports gerados"
+      ],
+      "related_files": [
+        "jest.config.js",
+        "playwright.config.js",
+        "tests/setup.js",
+        "tests/python/",
+        "pyproject.toml"
+      ],
+      "prd_reference": "PRD seção 'Testing Strategy' linhas 2189-2348",
+      "technical_notes": "Configurar mocks para chrome.storage, chrome.runtime, chrome.tabs",
+      "definition_of_done": [
+        "Testes básicos passando",
+        "Coverage configurado (target 90%)",
+        "CI/CD integração preparada"
+      ]
+    },
+    {
+      "id": "VER-006",
+      "name": "Configurar Docker e Qdrant",
+      "description": "Configurar Docker Compose com Qdrant v1.15.0, scripts de inicialização",
+      "sprint": 2,
+      "milestone": "M1.4",
+      "status": "not_started",
+      "priority": "critical",
+      "effort_hours": 10,
+      "story_points": 5,
+      "dependencies": ["VER-002"],
+      "assignee": "devops",
+      "acceptance_criteria": [
+        "docker-compose.yml configurado com Qdrant v1.15.0",
+        "Qdrant inicializa com configurações otimizadas",
+        "Collection 'veritas_embeddings' criada automaticamente",
+        "Health checks funcionando",
+        "Scripts de setup do Qdrant funcionando"
+      ],
+      "related_files": [
+        "docker-compose.yml",
+        "docker/docker-compose.test.yml",
+        "docker/qdrant/config/config.yaml",
+        "scripts/setup-qdrant.js"
+      ],
+      "prd_reference": "PRD seção 'Docker Setup Completo' linhas 810-890",
+      "technical_notes": "Usar quantização int8, HNSW otimizado, configurações de performance",
+      "definition_of_done": [
+        "Qdrant acessível em localhost:6333",
+        "Collection criada com schema correto",
+        "Testes de conectividade passando"
+      ]
+    },
+    {
+      "id": "VER-007",
+      "name": "Implementar estrutura base das entidades",
+      "description": "Criar entidades do domínio: Text, Classification, AnalysisResult, User",
+      "sprint": 2,
+      "milestone": "M1.2",
+      "status": "completed",
+      "priority": "high",
+      "effort_hours": 8,
+      "story_points": 5,
+      "dependencies": ["VER-001"],
+      "assignee": "backend_dev",
+      "acceptance_criteria": [
+        "Entidade Text com validações implementada",
+        "Entidade Classification com enums definidos",
+        "Entidade AnalysisResult completa",
+        "Entidade User para configurações",
+        "Value objects (TextHash, ConfidenceScore) implementados"
+      ],
+      "related_files": [
+        "src/domain/entities/Text.js",
+        "src/domain/entities/Classification.js",
+        "src/domain/entities/AnalysisResult.js",
+        "src/domain/entities/User.js",
+        "src/domain/value-objects/"
+      ],
+      "prd_reference": "PRD seção 'Domain Layer (Core Business Logic)' linhas 3185-3204",
+      "technical_notes": "Implementar validações: texto 10-2000 chars, confidence 0-1, classificações válidas",
+      "definition_of_done": [
+        "Entidades validadas com testes unitários",
+        "Validações funcionando corretamente",
+        "Documentação JSDoc completa"
+      ]
+    },
+    {
+      "id": "VER-008",
+      "name": "Configurar CI/CD pipeline",
+      "description": "Implementar GitHub Actions para testes, build, deploy automático",
+      "sprint": 2,
+      "milestone": "M1.3",
+      "status": "not_started",
+      "priority": "high",
+      "effort_hours": 12,
+      "story_points": 8,
+      "dependencies": ["VER-005", "VER-006"],
+      "assignee": "devops",
+      "acceptance_criteria": [
+        "GitHub Actions configurado para PR e push",
+        "Testes unitários executando no CI",
+        "Testes de integração com Qdrant",
+        "Build da extensão automatizado",
+        "Quality gates configurados"
+      ],
+      "related_files": [
+        ".github/workflows/main.yml",
+        ".github/workflows/release.yml"
+      ],
+      "prd_reference": "PRD seção 'CI/CD Pipeline' linhas 2349-2520",
+      "technical_notes": "Usar uv para Python, cache de dependências, matrix strategy para browsers",
+      "definition_of_done": [
+        "Pipeline executando sem erros",
+        "Testes passando no CI",
+        "Artifacts de build gerados"
+      ]
+    },
+    {
+      "id": "VER-009",
+      "name": "Implementar TextProcessor",
+      "description": "Criar classe para normalização e processamento de texto",
+      "sprint": 3,
+      "milestone": "M2.1",
+      "status": "completed",
+      "priority": "critical",
+      "effort_hours": 10,
+      "story_points": 5,
+      "dependencies": ["VER-007"],
+      "assignee": "backend_dev",
+      "acceptance_criteria": [
+        "Normalização de texto implementada",
+        "Geração de hash SHA-256 funcionando",
+        "Validação de comprimento (10-2000 chars)",
+        "Extração de sentenças implementada",
+        "Testes unitários com coverage > 90%"
+      ],
+      "related_files": [
+        "src/utils/text_processor.py",
+        "tests/unit/test_text_processor.py"
+      ],
+      "prd_reference": "PRD seção 'Algoritmo de Normalização de Texto' linhas 700-750",
+      "technical_notes": "Normalizar Unicode NFD->NFC, remover caracteres de controle, lowercase para hash",
+      "definition_of_done": [
+        "Normalização consistente validada",
+        "Hash único para textos similares",
+        "Performance otimizada"
+      ]
+    },
+    {
+      "id": "VER-010",
+      "name": "Implementar KeywordExtractor",
+      "description": "Criar sistema de extração de palavras-chave usando compromise.js",
+      "sprint": 3,
+      "milestone": "M2.2",
+      "status": "not_started",
+      "priority": "high",
+      "effort_hours": 16,
+      "story_points": 8,
+      "dependencies": ["VER-009"],
+      "assignee": "backend_dev",
+      "acceptance_criteria": [
+        "Extração básica com compromise.js funcionando",
+        "Extração customizada para fact-checking",
+        "Detecção de claims e números",
+        "Análise de sentimento básica",
+        "Indicadores de urgência identificados"
+      ],
+      "related_files": [
+        "src/utils/keyword-extractor.js",
+        "tests/unit/keyword-extractor.test.js"
+      ],
+      "prd_reference": "PRD seção 'Extração Avançada de Termos-chave' linhas 751-898",
+      "technical_notes": "Usar compromise para NLP, filtrar stopwords, extrair entidades nomeadas",
+      "definition_of_done": [
+        "Keywords relevantes extraídas",
+        "Precisão > 80% em testes",
+        "Performance < 100ms para textos típicos"
+      ]
+    },
+    {
+      "id": "VER-011",
+      "name": "Implementar GoogleFactCheckService",
+      "description": "Integrar Google Fact Check Tools API com sistema de cache e rate limiting",
+      "sprint": 3,
+      "milestone": "M2.3",
+      "status": "not_started",
+      "priority": "critical",
+      "effort_hours": 14,
+      "story_points": 8,
+      "dependencies": ["VER-010"],
+      "assignee": "backend_dev",
+      "acceptance_criteria": [
+        "Integração com Google Fact Check API funcionando",
+        "Sistema de rate limiting implementado",
+        "Cache de resultados funcionando",
+        "Parsing de respostas da API",
+        "Tratamento de erros robusto"
+      ],
+      "related_files": [
+        "src/services/fact-check-service.js",
+        "tests/unit/fact-check-service.test.js",
+        "tests/integration/google-api.test.js"
+      ],
+      "prd_reference": "PRD seção 'Google Fact Check API' linhas 580-650",
+      "technical_notes": "Usar keywords extraídas para query, validar fact-checkers aprovados",
+      "definition_of_done": [
+        "API retorna resultados válidos",
+        "Rate limiting respeitado",
+        "Cache hit rate > 30%"
+      ]
+    },
+    {
+      "id": "VER-012",
+      "name": "Implementar GroqLLMService",
+      "description": "Integrar Groq API para análise LLM como fallback",
+      "sprint": 4,
+      "milestone": "M2.4",
+      "status": "not_started",
+      "priority": "critical",
+      "effort_hours": 16,
+      "story_points": 8,
+      "dependencies": ["VER-011"],
+      "assignee": "backend_dev",
+      "acceptance_criteria": [
+        "Integração com Groq API funcionando",
+        "Prompt engineering otimizado",
+        "Parsing de respostas LLM",
+        "Sistema de fallback entre modelos",
+        "Tracking de custos implementado"
+      ],
+      "related_files": [
+        "src/services/llm-service.js",
+        "src/services/cost-tracker.js",
+        "tests/unit/llm-service.test.js"
+      ],
+      "prd_reference": "PRD seção 'Groq LLM API' linhas 651-720",
+      "technical_notes": "Usar modelos: mixtral-8x7b-32768, gemma-7b-it, llama3-8b-8192",
+      "definition_of_done": [
+        "LLM classifica com confidence score",
+        "Custos trackados corretamente",
+        "Fallback entre modelos funciona"
+      ]
+    },
+    {
+      "id": "VER-013",
+      "name": "Implementar QdrantClient",
+      "description": "Cliente para Qdrant com operações de busca vetorial e armazenamento",
+      "sprint": 4,
+      "milestone": "M2.5",
+      "status": "not_started",
+      "priority": "critical",
+      "effort_hours": 18,
+      "story_points": 13,
+      "dependencies": ["VER-006"],
+      "assignee": "backend_dev",
+      "acceptance_criteria": [
+        "Cliente Qdrant v1.15.0 funcionando",
+        "Operações CRUD implementadas",
+        "Busca vetorial com similaridade",
+        "Batch operations otimizadas",
+        "Índices de payload configurados"
+      ],
+      "related_files": [
+        "src/services/qdrant-client.js",
+        "tests/unit/qdrant-client.test.js",
+        "tests/integration/qdrant.test.js"
+      ],
+      "prd_reference": "PRD seção 'Qdrant Client Configuration (v1.15.0)' linhas 1400-1558",
+      "technical_notes": "Usar quantização int8, HNSW config otimizado, payload indexing",
+      "definition_of_done": [
+        "Busca vetorial < 500ms",
+        "Similaridade threshold 0.85 funciona",
+        "Batch operations otimizadas"
+      ]
+    },
+    {
+      "id": "VER-014",
+      "name": "Implementar EmbeddingService",
+      "description": "Serviço para geração de embeddings usando Transformers.js",
+      "sprint": 4,
+      "milestone": "M2.5",
+      "status": "not_started",
+      "priority": "high",
+      "effort_hours": 12,
+      "story_points": 8,
+      "dependencies": ["VER-009"],
+      "assignee": "backend_dev",
+      "acceptance_criteria": [
+        "Transformers.js configurado",
+        "Modelo sentence-transformers carregado",
+        "Geração de embeddings 384D",
+        "Cache de modelo local",
+        "Performance otimizada"
+      ],
+      "related_files": [
+        "src/services/embedding-service.js",
+        "tests/unit/embedding-service.test.js"
+      ],
+      "prd_reference": "PRD seção 'sentence-transformers/all-MiniLM-L6-v2' linha 100",
+      "technical_notes": "Usar all-MiniLM-L6-v2, cache do modelo no IndexedDB",
+      "definition_of_done": [
+        "Embeddings consistentes gerados",
+        "Performance < 1s para textos típicos",
+        "Modelo cached localmente"
+      ]
+    },
+    {
+      "id": "VER-015",
+      "name": "Implementar HybridAnalyzer",
+      "description": "Orquestrador principal que coordena fact-check + LLM + busca vetorial",
+      "sprint": 4,
+      "milestone": "M2.5",
+      "status": "not_started",
+      "priority": "critical",
+      "effort_hours": 20,
+      "story_points": 13,
+      "dependencies": ["VER-011", "VER-012", "VER-013", "VER-014"],
+      "assignee": "fullstack_dev",
+      "acceptance_criteria": [
+        "Fluxo híbrido implementado",
+        "Lógica de fallback funcionando",
+        "Cache integrado em todas as camadas",
+        "Métricas de performance coletadas",
+        "Error handling robusto"
+      ],
+      "related_files": [
+        "src/services/hybrid-analyzer.js",
+        "tests/unit/hybrid-analyzer.test.js",
+        "tests/integration/hybrid-flow.test.js"
+      ],
+      "prd_reference": "PRD seção 'Arquitetura Híbrida' linhas 4-10",
+      "technical_notes": "Fact-check primeiro, depois busca vetorial, LLM como último recurso",
+      "definition_of_done": [
+        "Fluxo end-to-end funciona",
+        "Response time < 2s (95th percentile)",
+        "Accuracy > 85% em testes"
+      ]
+    },
+    {
+      "id": "VER-016",
+      "name": "Implementar Content Script",
+      "description": "Script que detecta seleção de texto e injeta UI na página",
+      "sprint": 5,
+      "milestone": "M3.1",
+      "status": "not_started",
+      "priority": "critical",
+      "effort_hours": 16,
+      "story_points": 8,
+      "dependencies": ["VER-004"],
+      "assignee": "frontend_dev",
+      "acceptance_criteria": [
+        "Detecção de seleção de texto funcionando",
+        "Botão 'Verificar' aparece corretamente",
+        "Funciona em 95% dos sites",
+        "Performance otimizada",
+        "Não interfere com funcionalidade da página"
+      ],
+      "related_files": [
+        "src/content/content.js",
+        "src/content/text-selector.js",
+        "tests/e2e/content-script.test.js"
+      ],
+      "prd_reference": "PRD seção 'Content Scripts' linhas 39-42",
+      "technical_notes": "Usar MutationObserver, debounce para performance, shadow DOM para isolamento",
+      "definition_of_done": [
+        "Funciona em sites populares",
+        "Não causa memory leaks",
+        "Acessível via teclado"
+      ]
+    },
+    {
+      "id": "VER-017",
+      "name": "Implementar Tooltip de Resultados",
+      "description": "Interface tooltip responsiva para exibir classificação",
+      "sprint": 5,
+      "milestone": "M3.2",
+      "status": "not_started",
+      "priority": "high",
+      "effort_hours": 14,
+      "story_points": 8,
+      "dependencies": ["VER-016"],
+      "assignee": "frontend_dev",
+      "acceptance_criteria": [
+        "Tooltip responsivo implementado",
+        "Estados visuais para cada classificação",
+        "Animações suaves",
+        "Acessibilidade WCAG 2.1 AA",
+        "Funciona em diferentes resoluções"
+      ],
+      "related_files": [
+        "src/content/ui-components.js",
+        "src/assets/styles/tooltip.css",
+        "tests/e2e/tooltip.test.js"
+      ],
+      "prd_reference": "PRD seção 'Tooltip de Resultado' linhas 1300-1350",
+      "technical_notes": "Usar CSS Grid, animações CSS, ARIA labels, focus management",
+      "definition_of_done": [
+        "Tooltip aparece em < 200ms",
+        "Acessível via screen reader",
+        "Funciona em mobile"
+      ]
+    },
+    {
+      "id": "VER-018",
+      "name": "Implementar Popup de Configurações",
+      "description": "Interface popup para configurar API keys e preferências",
+      "sprint": 5,
+      "milestone": "M3.3",
+      "status": "not_started",
+      "priority": "high",
+      "effort_hours": 12,
+      "story_points": 8,
+      "dependencies": ["VER-004"],
+      "assignee": "frontend_dev",
+      "acceptance_criteria": [
+        "Popup HTML/CSS/JS implementado",
+        "Configuração de API keys funcionando",
+        "Validação de keys em tempo real",
+        "Persistência de configurações",
+        "Interface intuitiva e responsiva"
+      ],
+      "related_files": [
+        "src/popup/popup.html",
+        "src/popup/popup.js",
+        "src/popup/popup.css",
+        "tests/e2e/popup.test.js"
+      ],
+      "prd_reference": "PRD seção 'Interface de Configuração de API Keys' linhas 410-470",
+      "technical_notes": "Usar chrome.storage.sync, validação assíncrona, feedback visual",
+      "definition_of_done": [
+        "Configurações persistem corretamente",
+        "Validação de API keys funciona",
+        "Interface responsiva"
+      ]
+    },
+    {
+      "id": "VER-019",
+      "name": "Implementar Options Page",
+      "description": "Página completa de configurações avançadas",
+      "sprint": 5,
+      "milestone": "M3.3",
+      "status": "not_started",
+      "priority": "medium",
+      "effort_hours": 10,
+      "story_points": 5,
+      "dependencies": ["VER-018"],
+      "assignee": "frontend_dev",
+      "acceptance_criteria": [
+        "Página de opções completa",
+        "Configurações avançadas disponíveis",
+        "Import/export de configurações",
+        "Reset para padrões",
+        "Documentação inline"
+      ],
+      "related_files": [
+        "src/options/options.html",
+        "src/options/options.js",
+        "src/options/options.css"
+      ],
+      "prd_reference": "PRD seção 'Settings page' linha 47-50",
+      "technical_notes": "Usar tabs para organização, validação de formulários",
+      "definition_of_done": [
+        "Todas as configurações acessíveis",
+        "Import/export funciona",
+        "Documentação clara"
+      ]
+    },
+    {
+      "id": "VER-020",
+      "name": "Implementar Sistema de Notificações",
+      "description": "Sistema para exibir notificações de erro, status e feedback",
+      "sprint": 6,
+      "milestone": "M3.4",
+      "status": "not_started",
+      "priority": "high",
+      "effort_hours": 8,
+      "story_points": 5,
+      "dependencies": ["VER-017"],
+      "assignee": "frontend_dev",
+      "acceptance_criteria": [
+        "Notificações toast implementadas",
+        "Diferentes tipos (info, warning, error)",
+        "Auto-hide configurável",
+        "Acessibilidade completa",
+        "Não intrusivas"
+      ],
+      "related_files": [
+        "src/utils/user-notifications.js",
+        "src/assets/styles/notifications.css",
+        "tests/unit/notifications.test.js"
+      ],
+      "prd_reference": "PRD seção 'Sistema de Notificações' linhas 2050-2187",
+      "technical_notes": "Usar ARIA live regions, queue de notificações, animações CSS",
+      "definition_of_done": [
+        "Notificações acessíveis",
+        "Performance otimizada",
+        "Não interferem com página"
+      ]
+    },
+    {
+      "id": "VER-021",
+      "name": "Implementar Background Service Worker",
+      "description": "Service worker para gerenciar APIs, cache e comunicação",
+      "sprint": 6,
+      "milestone": "M3.5",
+      "status": "not_started",
+      "priority": "critical",
+      "effort_hours": 16,
+      "story_points": 8,
+      "dependencies": ["VER-015"],
+      "assignee": "backend_dev",
+      "acceptance_criteria": [
+        "Service worker Manifest V3 funcionando",
+        "Comunicação com content scripts",
+        "Gerenciamento de APIs centralizado",
+        "Cache persistente",
+        "Lifecycle management correto"
+      ],
+      "related_files": [
+        "src/background/background.js",
+        "src/background/api-manager.js",
+        "tests/unit/background.test.js"
+      ],
+      "prd_reference": "PRD seção 'Background script' linhas 36-38",
+      "technical_notes": "Usar chrome.runtime.onMessage, persistent storage, alarm API",
+      "definition_of_done": [
+        "Comunicação bidirecional funciona",
+        "APIs gerenciadas centralmente",
+        "Performance otimizada"
+      ]
+    },
+    {
+      "id": "VER-022",
+      "name": "Integrar Fluxo End-to-End",
+      "description": "Integração completa: seleção → análise → exibição de resultado",
+      "sprint": 6,
+      "milestone": "M3.5",
+      "status": "not_started",
+      "priority": "critical",
+      "effort_hours": 18,
+      "story_points": 13,
+      "dependencies": ["VER-016", "VER-017", "VER-021"],
+      "assignee": "fullstack_dev",
+      "acceptance_criteria": [
+        "Fluxo completo funcionando",
+        "Comunicação entre componentes",
+        "Error handling em todas as camadas",
+        "Performance targets atingidos",
+        "Funciona offline com cache"
+      ],
+      "related_files": [
+        "tests/e2e/full-flow.test.js",
+        "tests/integration/end-to-end.test.js"
+      ],
+      "prd_reference": "PRD seção 'Fluxo de Dados Completo' linhas 3250-3280",
+      "technical_notes": "Testar cenários: cache hit, fact-check, LLM fallback, offline",
+      "definition_of_done": [
+        "Todos os cenários funcionam",
+        "Response time < 2s",
+        "Error recovery funciona"
+      ]
+    },
+    {
+      "id": "VER-023",
+      "name": "Implementar Testes de Cobertura",
+      "description": "Atingir 90% de cobertura de testes unitários e integração",
+      "sprint": 7,
+      "milestone": "M4.1",
+      "status": "not_started",
+      "priority": "high",
+      "effort_hours": 20,
+      "story_points": 13,
+      "dependencies": ["VER-022"],
+      "assignee": "qa",
+      "acceptance_criteria": [
+        "Coverage unitário ≥ 90%",
+        "Coverage integração ≥ 85%",
+        "Testes E2E cobrindo fluxos principais",
+        "Testes de performance implementados",
+        "Relatórios de coverage automatizados"
+      ],
+      "related_files": [
+        "tests/unit/",
+        "tests/integration/",
+        "tests/e2e/",
+        "tests/performance/"
+      ],
+      "prd_reference": "PRD seção 'Coverage target de 90%' linha 2190",
+      "technical_notes": "Usar Jest coverage, Playwright para E2E, benchmark.js para performance",
+      "definition_of_done": [
+        "Coverage targets atingidos",
+        "Testes estáveis e confiáveis",
+        "CI/CD integrado"
+      ]
+    },
+    {
+      "id": "VER-024",
+      "name": "Otimização de Performance",
+      "description": "Otimizar performance para atingir targets de response time",
+      "sprint": 7,
+      "milestone": "M4.2",
+      "status": "not_started",
+      "priority": "high",
+      "effort_hours": 16,
+      "story_points": 8,
+      "dependencies": ["VER-022"],
+      "assignee": "fullstack_dev",
+      "acceptance_criteria": [
+        "Response time < 2s (95th percentile)",
+        "Cache hit rate ≥ 60%",
+        "Memory usage < 60MB",
+        "CPU usage otimizado",
+        "Benchmarks automatizados"
+      ],
+      "related_files": [
+        "tests/performance/benchmarks.js",
+        "src/utils/performance-monitor.js"
+      ],
+      "prd_reference": "PRD seção 'Performance Requirements' linhas 1561-1575",
+      "technical_notes": "Profiling com Chrome DevTools, otimização de queries, lazy loading",
+      "definition_of_done": [
+        "Todos os targets atingidos",
+        "Performance regression tests",
+        "Monitoring implementado"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  qdrant-test:
+    image: qdrant/qdrant:v1.15.0
+    container_name: veritas-qdrant-test
+    ports:
+      - "6335:6333"
+    environment:
+      - QDRANT__SERVICE__HTTP_PORT=6333
+      - QDRANT__LOG_LEVEL=WARN
+      - QDRANT__STORAGE__STORAGE_PATH=/qdrant/storage
+      - QDRANT__SERVICE__ENABLE_CORS=true
+      - QDRANT__CLUSTER__ENABLED=false
+      - QDRANT__SERVICE__MAX_REQUEST_SIZE_MB=16
+      - QDRANT__STORAGE__PERFORMANCE__MAX_SEARCH_THREADS=2
+    volumes:
+      - ./test_data:/qdrant/storage
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    tmpfs:
+      - /qdrant/storage:noexec,nosuid,size=100m
+    networks:
+      - veritas-test-network
+
+  test-runner:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.test
+    container_name: veritas-test-runner
+    depends_on:
+      qdrant-test:
+        condition: service_healthy
+    environment:
+      - QDRANT_URL=http://qdrant-test:6333
+      - NODE_ENV=test
+      - PYTHONPATH=/app
+    volumes:
+      - ..:/app
+      - ../test-results:/app/test-results
+      - ../coverage:/app/coverage
+    working_dir: /app
+    command: npm run test:all
+    networks:
+      - veritas-test-network
+
+networks:
+  veritas-test-network:
+    driver: bridge

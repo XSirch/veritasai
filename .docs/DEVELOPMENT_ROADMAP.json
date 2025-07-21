@@ -1,0 +1,395 @@
+{
+  "project": {
+    "name": "VeritasAI - Extensão de Verificação de Informações",
+    "version": "1.0.0",
+    "duration_weeks": 8,
+    "total_sprints": 4,
+    "estimated_hours": 320,
+    "team_size": 4,
+    "start_date": "2024-01-15",
+    "end_date": "2024-03-11",
+    "description": "Roadmap executável para desenvolvimento do VeritasAI seguindo metodologia ágil"
+  },
+  "sprints": {
+    "sprint_1": {
+      "name": "Fundação - Parte 1",
+      "weeks": "1-2",
+      "dates": "2024-01-15 to 2024-01-28",
+      "focus": "Setup ambiente, estrutura base, configurações iniciais",
+      "milestones": ["M1.1", "M1.2"],
+      "estimated_hours": 80,
+      "team_velocity": 20
+    },
+    "sprint_2": {
+      "name": "Fundação - Parte 2", 
+      "weeks": "3-4",
+      "dates": "2024-01-29 to 2024-02-11",
+      "focus": "CI/CD, Docker, Qdrant, testes básicos",
+      "milestones": ["M1.3", "M1.4"],
+      "estimated_hours": 80,
+      "team_velocity": 20
+    },
+    "sprint_3": {
+      "name": "Core Services - Parte 1",
+      "weeks": "5-6", 
+      "dates": "2024-02-12 to 2024-02-25",
+      "focus": "Processamento de texto, extração de keywords, APIs",
+      "milestones": ["M2.1", "M2.2", "M2.3"],
+      "estimated_hours": 80,
+      "team_velocity": 20
+    },
+    "sprint_4": {
+      "name": "Core Services - Parte 2",
+      "weeks": "7-8",
+      "dates": "2024-02-26 to 2024-03-11", 
+      "focus": "LLM integration, Qdrant client, fluxo híbrido",
+      "milestones": ["M2.4", "M2.5"],
+      "estimated_hours": 80,
+      "team_velocity": 20
+    }
+  },
+  "milestones": {
+    "M1.1": {
+      "name": "Ambiente de desenvolvimento configurado",
+      "description": "Setup completo do ambiente, estrutura de projeto, ferramentas",
+      "sprint": 1,
+      "criteria": [
+        "Estrutura de pastas criada",
+        "Dependências instaladas",
+        "Scripts de setup funcionando",
+        "Documentação validada"
+      ]
+    },
+    "M1.2": {
+      "name": "Estrutura de projeto criada",
+      "description": "Build system, manifest, testes básicos configurados",
+      "sprint": 1,
+      "criteria": [
+        "Webpack configurado",
+        "Manifest V3 válido",
+        "Sistema de testes funcionando",
+        "Entidades base implementadas"
+      ]
+    },
+    "M1.3": {
+      "name": "CI/CD pipeline básico funcionando",
+      "description": "GitHub Actions, quality gates, automação",
+      "sprint": 2,
+      "criteria": [
+        "Pipeline executando",
+        "Testes automatizados",
+        "Quality gates configurados",
+        "Artifacts gerados"
+      ]
+    },
+    "M1.4": {
+      "name": "Qdrant configurado e testado",
+      "description": "Docker, Qdrant v1.15.0, collections, testes",
+      "sprint": 2,
+      "criteria": [
+        "Qdrant rodando via Docker",
+        "Collections criadas",
+        "Testes de conectividade",
+        "Performance validada"
+      ]
+    },
+    "M2.1": {
+      "name": "TextProcessor implementado",
+      "description": "Normalização, hash, validação de texto",
+      "sprint": 3,
+      "criteria": [
+        "Normalização consistente",
+        "Hash SHA-256 funcionando",
+        "Validações implementadas",
+        "Testes com 90% coverage"
+      ]
+    },
+    "M2.2": {
+      "name": "KeywordExtractor funcionando",
+      "description": "Extração de palavras-chave, NLP, análise",
+      "sprint": 3,
+      "criteria": [
+        "Compromise.js integrado",
+        "Keywords relevantes extraídas",
+        "Precisão > 80%",
+        "Performance otimizada"
+      ]
+    },
+    "M2.3": {
+      "name": "GoogleFactCheckService integrado",
+      "description": "API Google, rate limiting, cache",
+      "sprint": 3,
+      "criteria": [
+        "API integrada",
+        "Rate limiting funcionando",
+        "Cache implementado",
+        "Error handling robusto"
+      ]
+    },
+    "M2.4": {
+      "name": "GroqLLMService implementado",
+      "description": "LLM API, fallback, cost tracking",
+      "sprint": 4,
+      "criteria": [
+        "Groq API integrada",
+        "Modelos funcionando",
+        "Cost tracking ativo",
+        "Fallback implementado"
+      ]
+    },
+    "M2.5": {
+      "name": "QdrantClient operacional",
+      "description": "Cliente Qdrant, busca vetorial, embeddings",
+      "sprint": 4,
+      "criteria": [
+        "Cliente funcionando",
+        "Busca vetorial < 500ms",
+        "Embeddings gerados",
+        "Fluxo híbrido completo"
+      ]
+    }
+  },
+  "tasks": [
+    {
+      "id": "VER-001",
+      "name": "Configurar estrutura inicial do projeto",
+      "description": "Criar estrutura de pastas conforme PRD, configurar package.json, pyproject.toml, e arquivos base",
+      "sprint": 1,
+      "milestone": "M1.1",
+      "status": "not_started",
+      "priority": "critical",
+      "effort_hours": 8,
+      "story_points": 3,
+      "dependencies": [],
+      "assignee": "devops",
+      "acceptance_criteria": [
+        "Estrutura de pastas criada conforme PRD seção 'Project Structure'",
+        "package.json configurado com todas as dependências",
+        "pyproject.toml configurado com uv",
+        "Arquivos de configuração (.env.example, .gitignore) criados",
+        "README.md atualizado com instruções básicas"
+      ],
+      "related_files": [
+        "package.json",
+        "pyproject.toml", 
+        ".env.example",
+        ".gitignore",
+        "README.md",
+        "src/",
+        "tests/",
+        "docker/"
+      ],
+      "prd_reference": "PRD seção 'Project Structure' linhas 23-93",
+      "technical_notes": "Seguir exatamente a estrutura definida no PRD. Configurar uv para Python e npm para Node.js",
+      "definition_of_done": [
+        "Estrutura validada por code review",
+        "Scripts de setup funcionando",
+        "Documentação atualizada"
+      ]
+    },
+    {
+      "id": "VER-002", 
+      "name": "Configurar ambiente de desenvolvimento",
+      "description": "Implementar scripts de setup automático, configurar ferramentas de desenvolvimento",
+      "sprint": 1,
+      "milestone": "M1.1",
+      "status": "not_started", 
+      "priority": "critical",
+      "effort_hours": 12,
+      "story_points": 5,
+      "dependencies": ["VER-001"],
+      "assignee": "devops",
+      "acceptance_criteria": [
+        "Script setup-dev.js funcionando completamente",
+        "Script setup_python.py configurando ambiente Python",
+        "Verificação automática de pré-requisitos",
+        "Instalação automática de dependências",
+        "Validação do ambiente configurado"
+      ],
+      "related_files": [
+        "scripts/setup-dev.js",
+        "scripts/setup_python.py",
+        ".python-version"
+      ],
+      "prd_reference": "PRD seção 'Configuração do Ambiente de Desenvolvimento' linhas 808-1200",
+      "technical_notes": "Implementar verificação de Node.js 16+, Python 3.9+, Docker 20+, uv instalado",
+      "definition_of_done": [
+        "Setup funciona em ambiente limpo",
+        "Todos os pré-requisitos verificados",
+        "Documentação de setup validada"
+      ]
+    },
+    {
+      "id": "VER-003",
+      "name": "Configurar Webpack e build system",
+      "description": "Configurar Webpack 5 para extensão de navegador, babel, loaders para CSS/assets",
+      "sprint": 1,
+      "milestone": "M1.2",
+      "status": "not_started",
+      "priority": "high", 
+      "effort_hours": 10,
+      "story_points": 5,
+      "dependencies": ["VER-001"],
+      "assignee": "frontend_dev",
+      "acceptance_criteria": [
+        "webpack.config.js configurado para Manifest V3",
+        "Build de desenvolvimento e produção funcionando",
+        "Hot reload configurado para desenvolvimento",
+        "Assets (CSS, imagens, fontes) processados corretamente",
+        "Source maps funcionando em desenvolvimento"
+      ],
+      "related_files": [
+        "webpack.config.js",
+        "babel.config.js",
+        ".babelrc"
+      ],
+      "prd_reference": "PRD seção 'Build Tool: Webpack 5 com manifest v3' linha 103",
+      "technical_notes": "Configurar para múltiplos entry points: background, content, popup, options",
+      "definition_of_done": [
+        "Build produz extensão válida",
+        "Manifest V3 compliance verificado",
+        "Performance de build otimizada"
+      ]
+    },
+    {
+      "id": "VER-004",
+      "name": "Criar manifest.json da extensão",
+      "description": "Implementar manifest.json completo com todas as permissões, content scripts e configurações",
+      "sprint": 1,
+      "milestone": "M1.2",
+      "status": "not_started",
+      "priority": "critical",
+      "effort_hours": 6,
+      "story_points": 3,
+      "dependencies": ["VER-001"],
+      "assignee": "frontend_dev",
+      "acceptance_criteria": [
+        "Manifest V3 válido e completo",
+        "Permissões mínimas necessárias definidas",
+        "Content scripts configurados",
+        "Background service worker definido",
+        "Icons e metadata configurados"
+      ],
+      "related_files": [
+        "manifest.json",
+        "src/assets/icons/"
+      ],
+      "prd_reference": "PRD seção 'Required Browser Permissions' linhas 395-408",
+      "technical_notes": "Usar permissões: storage, activeTab, scripting, contextMenus. Host permissions para APIs",
+      "definition_of_done": [
+        "Manifest validado pelo Chrome",
+        "Extensão carrega sem erros",
+        "Permissões justificadas e documentadas"
+      ]
+    },
+    {
+      "id": "VER-005",
+      "name": "Configurar sistema de testes",
+      "description": "Configurar Jest para testes unitários, Playwright para E2E, pytest para Python",
+      "sprint": 1,
+      "milestone": "M1.2",
+      "status": "not_started",
+      "priority": "high",
+      "effort_hours": 14,
+      "story_points": 8,
+      "dependencies": ["VER-002"],
+      "assignee": "qa",
+      "acceptance_criteria": [
+        "Jest configurado com mocks para Chrome APIs",
+        "Playwright configurado para testes E2E",
+        "pytest configurado com coverage",
+        "Scripts de teste funcionando",
+        "Coverage reports gerados"
+      ],
+      "related_files": [
+        "jest.config.js",
+        "playwright.config.js",
+        "tests/setup.js",
+        "tests/python/",
+        "pyproject.toml"
+      ],
+      "prd_reference": "PRD seção 'Testing Strategy' linhas 2189-2348",
+      "technical_notes": "Configurar mocks para chrome.storage, chrome.runtime, chrome.tabs",
+      "definition_of_done": [
+        "Testes básicos passando",
+        "Coverage configurado (target 90%)",
+        "CI/CD integração preparada"
+      ]
+    }
+  ],
+  "team_roles": {
+    "devops": {
+      "name": "DevOps Engineer",
+      "responsibilities": ["Infrastructure", "CI/CD", "Docker", "Environment setup"],
+      "skills": ["Docker", "GitHub Actions", "Shell scripting", "Python"]
+    },
+    "frontend_dev": {
+      "name": "Frontend Developer",
+      "responsibilities": ["UI/UX", "Content scripts", "Extension interface", "Accessibility"],
+      "skills": ["JavaScript", "CSS", "HTML", "Web Extensions API", "React"]
+    },
+    "backend_dev": {
+      "name": "Backend Developer",
+      "responsibilities": ["APIs", "Services", "Data processing", "Integrations"],
+      "skills": ["JavaScript", "Python", "APIs", "Databases", "NLP"]
+    },
+    "fullstack_dev": {
+      "name": "Fullstack Developer",
+      "responsibilities": ["Integration", "Architecture", "Performance", "End-to-end flows"],
+      "skills": ["JavaScript", "Python", "System design", "Performance optimization"]
+    },
+    "qa": {
+      "name": "Quality Assurance Engineer",
+      "responsibilities": ["Testing", "Quality gates", "Performance testing", "Automation"],
+      "skills": ["Jest", "Playwright", "pytest", "Test automation", "Performance testing"]
+    }
+  },
+  "dependencies_graph": {
+    "VER-001": [],
+    "VER-002": ["VER-001"],
+    "VER-003": ["VER-001"],
+    "VER-004": ["VER-001"],
+    "VER-005": ["VER-002"]
+  },
+  "risk_assessment": {
+    "high_risk_tasks": [
+      {
+        "task_id": "VER-013",
+        "risk": "Qdrant integration complexity",
+        "mitigation": "Early prototype, fallback to IndexedDB",
+        "impact": "High"
+      },
+      {
+        "task_id": "VER-015",
+        "risk": "Hybrid flow performance",
+        "mitigation": "Aggressive caching, performance monitoring",
+        "impact": "High"
+      }
+    ],
+    "critical_path": [
+      "VER-001", "VER-002", "VER-006", "VER-013", "VER-015", "VER-022"
+    ]
+  },
+  "success_metrics": {
+    "sprint_1": {
+      "velocity_target": 20,
+      "completion_rate": "100%",
+      "quality_gate": "All tests passing"
+    },
+    "sprint_2": {
+      "velocity_target": 20,
+      "completion_rate": "100%",
+      "quality_gate": "CI/CD functional, Qdrant operational"
+    },
+    "sprint_3": {
+      "velocity_target": 20,
+      "completion_rate": "100%",
+      "quality_gate": "APIs integrated, accuracy > 80%"
+    },
+    "sprint_4": {
+      "velocity_target": 20,
+      "completion_rate": "100%",
+      "quality_gate": "End-to-end flow functional, performance targets met"
+    }
+  }
+}
