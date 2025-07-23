@@ -288,7 +288,7 @@
       "description": "Configurar Webpack 5 para extensão de navegador, babel, loaders para CSS/assets",
       "sprint": 1,
       "milestone": "M1.2",
-      "status": "not_started",
+      "status": "completed",
       "priority": "high", 
       "effort_hours": 10,
       "story_points": 5,

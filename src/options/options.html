@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VeritasAI - Configurações</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f8f9fa;
+      color: #333;
+      line-height: 1.6;
+    }
+    
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      min-height: 100vh;
+    }
+    
+    .header {
+      background: linear-gradient(135deg, #2196F3, #1976D2);
+      color: white;
+      padding: 32px;
+      text-align: center;
+    }
+    
+    .logo {
+      font-size: 32px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    
+    .tagline {
+      font-size: 16px;
+      opacity: 0.9;
+    }
+    
+    .tabs {
+      display: flex;
+      background: #f5f5f5;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    
+    .tab-button {
+      flex: 1;
+      padding: 16px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    
+    .tab-button:hover {
+      background: #e0e0e0;
+    }
+    
+    .tab-button.active {
+      background: white;
+      border-bottom: 3px solid #2196F3;
+      color: #2196F3;
+    }
+    
+    .tab-content {
+      display: none;
+      padding: 32px;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+    
+    .section {
+      margin-bottom: 32px;
+    }
+    
+    .section-title {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: #333;
+    }
+    
+    .section-description {
+      color: #666;
+      margin-bottom: 24px;
+    }
+    
+    .form-group {
+      margin-bottom: 24px;
+    }
+    
+    .form-label {
+      display: block;
+      font-weight: 500;
+      margin-bottom: 8px;
+      color: #333;
+    }
+    
+    .form-input {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+    
+    .form-input:focus {
+      outline: none;
+      border-color: #2196F3;
+    }
+    
+    .form-checkbox {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    
+    .checkbox {
+      width: 20px;
+      height: 20px;
+      accent-color: #2196F3;
+    }
+    
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .btn-primary {
+      background: #2196F3;
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: #1976D2;
+    }
+    
+    .btn-secondary {
+      background: #f5f5f5;
+      color: #333;
+    }
+    
+    .btn-secondary:hover {
+      background: #e0e0e0;
+    }
+    
+    .btn-danger {
+      background: #F44336;
+      color: white;
+    }
+    
+    .btn-danger:hover {
+      background: #D32F2F;
+    }
+    
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    
+    .btn-group {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+    }
+    
+    .api-test {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-top: 8px;
+    }
+    
+    .notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 16px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      z-index: 1000;
+      animation: slideIn 0.3s ease;
+      max-width: 300px;
+    }
+    
+    .notification.success {
+      background: #4CAF50;
+      color: white;
+    }
+    
+    .notification.error {
+      background: #F44336;
+      color: white;
+    }
+    
+    .notification.info {
+      background: #2196F3;
+      color: white;
+    }
+    
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+    
+    .help-text {
+      font-size: 12px;
+      color: #666;
+      margin-top: 4px;
+    }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    
+    .stat-card {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    
+    .stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: #2196F3;
+      margin-bottom: 4px;
+    }
+    
+    .stat-label {
+      font-size: 14px;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo">🛡️ VeritasAI</div>
+      <div class="tagline">Configurações Avançadas</div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-button active" data-tab="general-tab">Geral</button>
+      <button class="tab-button" data-tab="api-tab">APIs</button>
+      <button class="tab-button" data-tab="cache-tab">Cache</button>
+      <button class="tab-button" data-tab="advanced-tab">Avançado</button>
+    </div>
+
+    <!-- Aba Geral -->
+    <div id="general-tab" class="tab-content active">
+      <div class="section">
+        <h2 class="section-title">Configurações Gerais</h2>
+        <p class="section-description">Configure o comportamento básico da extensão.</p>
+
+        <form id="general-form">
+          <div class="form-checkbox">
+            <input type="checkbox" id="enabled" name="enabled" class="checkbox" checked>
+            <label for="enabled" class="form-label">Extensão ativada</label>
+          </div>
+          <div class="help-text">Ativa ou desativa completamente a extensão</div>
+
+          <div class="form-checkbox">
+            <input type="checkbox" id="auto-check" name="auto-check" class="checkbox" checked>
+            <label for="auto-check" class="form-label">Verificação automática</label>
+          </div>
+          <div class="help-text">Mostra automaticamente o botão de verificação ao selecionar texto</div>
+
+          <div class="form-checkbox">
+            <input type="checkbox" id="show-tooltips" name="show-tooltips" class="checkbox" checked>
+            <label for="show-tooltips" class="form-label">Mostrar tooltips</label>
+          </div>
+          <div class="help-text">Exibe tooltips informativos com os resultados das verificações</div>
+
+          <div class="btn-group">
+            <button type="submit" class="btn btn-primary">Salvar Configurações</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Aba APIs -->
+    <div id="api-tab" class="tab-content">
+      <div class="section">
+        <h2 class="section-title">Configuração de APIs</h2>
+        <p class="section-description">Configure suas próprias API keys para limites dedicados.</p>
+
+        <form id="api-form">
+          <div class="form-group">
+            <label for="google-api-key" class="form-label">Google Fact Check Tools API Key</label>
+            <input type="password" id="google-api-key" name="google-api-key" class="form-input"
+                   placeholder="Insira sua API key do Google">
+            <div class="help-text">
+              Obtenha em: <a href="https://console.developers.google.com/" target="_blank">Google Cloud Console</a>
+            </div>
+            <div class="api-test">
+              <button type="button" id="test-google-api" class="btn btn-secondary">Testar API</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="groq-api-key" class="form-label">Groq API Key</label>
+            <input type="password" id="groq-api-key" name="groq-api-key" class="form-input"
+                   placeholder="Insira sua API key do Groq">
+            <div class="help-text">
+              Obtenha em: <a href="https://console.groq.com/" target="_blank">Groq Console</a>
+            </div>
+            <div class="api-test">
+              <button type="button" id="test-groq-api" class="btn btn-secondary">Testar API</button>
+            </div>
+          </div>
+
+          <div class="btn-group">
+            <button type="submit" class="btn btn-primary">Salvar API Keys</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Aba Cache -->
+    <div id="cache-tab" class="tab-content">
+      <div class="section">
+        <h2 class="section-title">Configurações de Cache</h2>
+        <p class="section-description">Gerencie o cache local para melhor performance.</p>
+
+        <form id="cache-form">
+          <div class="form-checkbox">
+            <input type="checkbox" id="cache-enabled" name="cache-enabled" class="checkbox" checked>
+            <label for="cache-enabled" class="form-label">Cache habilitado</label>
+          </div>
+          <div class="help-text">Armazena resultados localmente para respostas mais rápidas</div>
+
+          <div class="form-group">
+            <label for="cache-ttl" class="form-label">Tempo de vida do cache (dias)</label>
+            <input type="number" id="cache-ttl" name="cache-ttl" class="form-input"
+                   value="30" min="1" max="365">
+            <div class="help-text">Por quantos dias os resultados ficam armazenados</div>
+          </div>
+
+          <div class="btn-group">
+            <button type="submit" class="btn btn-primary">Salvar Configurações</button>
+            <button type="button" id="clear-cache-btn" class="btn btn-danger">Limpar Cache</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Aba Avançado -->
+    <div id="advanced-tab" class="tab-content">
+      <div class="section">
+        <h2 class="section-title">Configurações Avançadas</h2>
+        <p class="section-description">Opções para usuários avançados e desenvolvedores.</p>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-value">0</div>
+            <div class="stat-label">Verificações Realizadas</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">0 KB</div>
+            <div class="stat-label">Cache Utilizado</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">87%</div>
+            <div class="stat-label">Taxa de Precisão</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Backup e Restauração</label>
+          <div class="btn-group">
+            <button type="button" id="export-btn" class="btn btn-secondary">Exportar Configurações</button>
+            <input type="file" id="import-input" accept=".json" style="display: none;">
+            <button type="button" class="btn btn-secondary" onclick="document.getElementById('import-input').click()">
+              Importar Configurações
+            </button>
+          </div>
+          <div class="help-text">Faça backup ou restaure suas configurações</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Reset</label>
+          <button type="button" id="reset-btn" class="btn btn-danger">Resetar Todas as Configurações</button>
+          <div class="help-text">Restaura todas as configurações para os valores padrão</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
