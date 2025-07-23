@@ -135,7 +135,7 @@ def main():
 
 if __name__ == "__main__":
     main()
-""")
+""", encoding='utf-8')
     
     # Script para formatação de código
     format_script = scripts_dir / "format.py"
@@ -144,14 +144,14 @@ import subprocess
 
 def main():
     \"\"\"Formata código usando black e isort.\"\"\"
-    print("🎨 Formatando código...")
+    print("Formatando código...")
     subprocess.run(["uv", "run", "black", "src", "tests", "scripts"])
     subprocess.run(["uv", "run", "isort", "src", "tests", "scripts"])
-    print("✅ Código formatado")
+    print("Código formatado")
 
 if __name__ == "__main__":
     main()
-""")
+""", encoding='utf-8')
     
     # Script para linting
     lint_script = scripts_dir / "lint.py"
@@ -160,22 +160,22 @@ import subprocess
 
 def main():
     \"\"\"Execute linting usando flake8, mypy e bandit.\"\"\"
-    print("🔍 Executando linting...")
-    
-    print("📝 flake8...")
+    print("Executando linting...")
+
+    print("flake8...")
     subprocess.run(["uv", "run", "flake8", "src", "tests"])
-    
-    print("🔍 mypy...")
+
+    print("mypy...")
     subprocess.run(["uv", "run", "mypy", "src"])
-    
-    print("🔒 bandit...")
+
+    print("bandit...")
     subprocess.run(["uv", "run", "bandit", "-r", "src"])
-    
-    print("✅ Linting concluído")
+
+    print("Linting concluído")
 
 if __name__ == "__main__":
     main()
-""")
+""", encoding='utf-8')
     
     # Tornar scripts executáveis
     for script in [test_script, format_script, lint_script]:
