@@ -19,10 +19,18 @@
     "format": "prettier --write \"src/**/*.js\" \"tests/**/*.js\"",
     "setup": "node scripts/setup-dev.js && python scripts/setup_python.py",
     "setup:python": "python scripts/setup_python.py",
+    "docker:check": "node scripts/check-docker.js",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
     "docker:logs": "docker-compose logs -f",
+    "docker:restart": "docker-compose restart",
+    "docker:clean": "docker-compose down -v --remove-orphans",
+    "docker:test:up": "docker-compose -f docker/docker-compose.test.yml up -d",
+    "docker:test:down": "docker-compose -f docker/docker-compose.test.yml down",
+    "docker:test:clean": "docker-compose -f docker/docker-compose.test.yml down -v --remove-orphans",
     "qdrant:setup": "node scripts/setup-qdrant.js",
+    "qdrant:status": "curl -f http://localhost:6333/health || echo 'Qdrant não está rodando'",
+    "qdrant:dashboard": "open http://localhost:6333/dashboard",
     "package": "node scripts/package.js",
     "clean": "rimraf dist coverage test-results",
     "precommit": "npm run lint && npm run test:unit",
@@ -34,7 +42,19 @@
     "py:format": "uv run python scripts/format.py",
     "py:sync": "uv sync",
     "py:add": "uv add",
-    "py:remove": "uv remove"
+    "py:remove": "uv remove",
+    "validate": "node scripts/validate-manifest.js",
+    "test": "npm run test:unit && npm run test:e2e",
+    "test:unit": "jest",
+    "test:unit:watch": "jest --watch",
+    "test:unit:coverage": "jest --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:report": "playwright show-report",
+    "test:py": "uv run pytest",
+    "test:py:coverage": "uv run pytest --cov=src --cov-report=html",
+    "coverage": "node scripts/coverage-report.js",
+    "coverage:open": "npm run coverage && open coverage-report/index.html"
   },
   "dependencies": {
     "@xenova/transformers": "^2.17.0",
@@ -69,29 +89,6 @@
     "rimraf": "^5.0.5",
     "dotenv": "^16.3.1",
     "node-fetch": "^3.3.2"
-  },
-  "jest": {
-    "testEnvironment": "jsdom",
-    "setupFilesAfterEnv": ["<rootDir>/tests/setup.js"],
-    "testMatch": [
-      "<rootDir>/tests/**/*.test.js"
-    ],
-    "collectCoverageFrom": [
-      "src/**/*.js",
-      "!src/**/*.test.js",
-      "!src/assets/**"
-    ],
-    "coverageThreshold": {
-      "global": {
-        "branches": 90,
-        "functions": 90,
-        "lines": 90,
-        "statements": 90
-      }
-    },
-    "moduleNameMapping": {
-      "^@/(.*)$": "<rootDir>/src/$1"
-    }
   },
   "lint-staged": {
     "*.js": [

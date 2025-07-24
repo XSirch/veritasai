@@ -1,5 +1,5 @@
 // Jest setup file
-import 'jest-environment-jsdom';
+require('jest-environment-jsdom');
 
 // Mock chrome extension APIs
 global.chrome = {
@@ -94,15 +94,20 @@ Object.defineProperty(global.navigator, 'onLine', {
   value: true
 });
 
-// Mock window.location
-delete window.location;
-window.location = {
-  href: 'https://example.com',
-  hostname: 'example.com',
-  pathname: '/',
-  search: '',
-  hash: ''
-};
+// Mock window.location (apenas se window existir)
+if (typeof window !== 'undefined') {
+  delete window.location;
+  window.location = {
+    href: 'https://example.com',
+    hostname: 'example.com',
+    pathname: '/',
+    search: '',
+    hash: '',
+    assign: jest.fn(),
+    replace: jest.fn(),
+    reload: jest.fn()
+  };
+}
 
 // Mock console methods for cleaner test output
 global.console = {
@@ -114,8 +119,10 @@ global.console = {
   error: jest.fn()
 };
 
-// Setup DOM
-document.body.innerHTML = '';
+// Setup DOM (apenas se document existir)
+if (typeof document !== 'undefined') {
+  document.body.innerHTML = '';
+}
 
 // Global test utilities
 global.testUtils = {
@@ -164,13 +171,27 @@ global.testUtils = {
 // Cleanup after each test
 afterEach(() => {
   jest.clearAllMocks();
-  document.body.innerHTML = '';
-  
+
+  // Reset DOM apenas se document existir
+  if (typeof document !== 'undefined') {
+    document.body.innerHTML = '';
+  }
+
   // Reset chrome mocks
-  Object.values(chrome.storage.sync).forEach(fn => fn.mockClear());
-  Object.values(chrome.storage.local).forEach(fn => fn.mockClear());
-  chrome.runtime.sendMessage.mockClear();
-  
+  if (global.chrome) {
+    Object.values(chrome.storage.sync).forEach(fn => {
+      if (fn && fn.mockClear) fn.mockClear();
+    });
+    Object.values(chrome.storage.local).forEach(fn => {
+      if (fn && fn.mockClear) fn.mockClear();
+    });
+    if (chrome.runtime.sendMessage && chrome.runtime.sendMessage.mockClear) {
+      chrome.runtime.sendMessage.mockClear();
+    }
+  }
+
   // Reset fetch mock
-  global.fetch.mockClear();
+  if (global.fetch && global.fetch.mockClear) {
+    global.fetch.mockClear();
+  }
 });
