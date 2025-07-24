@@ -20,8 +20,8 @@ O sistema utiliza uma arquitetura híbrida com:
 
 ## 📊 Status do Projeto
 
-**Progresso atual**: 62% (8/13 tarefas principais concluídas)
-**Sprint atual**: 1-2
+**Progresso atual**: 77% (10/13 tarefas principais concluídas)
+**Sprint atual**: 3
 **Última atualização**: 2025-01-23
 
 ### ✅ Implementado
@@ -33,6 +33,8 @@ O sistema utiliza uma arquitetura híbrida com:
 - **VER-006**: Docker e Qdrant (Qdrant v1.15.0 configurado e funcionando)
 - **VER-007**: Estrutura base das entidades (Domain Layer)
 - **VER-009**: TextProcessor (Normalização e processamento de texto)
+- **VER-010**: KeywordExtractor (Sistema de extração de palavras-chave com NLP)
+- **VER-011**: GoogleFactCheckService (Integração com Google Fact Check API)
 
 ### 🔄 Próximo
 - **VER-010**: KeywordExtractor (Extração de palavras-chave)
