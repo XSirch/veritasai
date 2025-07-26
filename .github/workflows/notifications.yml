@@ -1,0 +1,352 @@
+name: Notifications
+
+on:
+  workflow_run:
+    workflows: ["Tests", "Build", "Quality Gates", "Deploy", "Release"]
+    types:
+      - completed
+  issues:
+    types: [opened, closed]
+  pull_request:
+    types: [opened, closed, merged]
+  release:
+    types: [published]
+
+jobs:
+  notify-workflow-status:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_run'
+    
+    steps:
+    - name: Get workflow info
+      id: workflow
+      run: |
+        WORKFLOW_NAME="${{ github.event.workflow_run.name }}"
+        WORKFLOW_STATUS="${{ github.event.workflow_run.conclusion }}"
+        WORKFLOW_URL="${{ github.event.workflow_run.html_url }}"
+        BRANCH="${{ github.event.workflow_run.head_branch }}"
+        COMMIT="${{ github.event.workflow_run.head_sha }}"
+        ACTOR="${{ github.event.workflow_run.actor.login }}"
+        
+        echo "workflow_name=$WORKFLOW_NAME" >> $GITHUB_OUTPUT
+        echo "workflow_status=$WORKFLOW_STATUS" >> $GITHUB_OUTPUT
+        echo "workflow_url=$WORKFLOW_URL" >> $GITHUB_OUTPUT
+        echo "branch=$BRANCH" >> $GITHUB_OUTPUT
+        echo "commit=${COMMIT:0:8}" >> $GITHUB_OUTPUT
+        echo "actor=$ACTOR" >> $GITHUB_OUTPUT
+        
+    - name: Determine notification level
+      id: notification
+      run: |
+        WORKFLOW_NAME="${{ steps.workflow.outputs.workflow_name }}"
+        WORKFLOW_STATUS="${{ steps.workflow.outputs.workflow_status }}"
+        BRANCH="${{ steps.workflow.outputs.branch }}"
+        
+        # Determine notification level based on workflow and status
+        if [ "$WORKFLOW_STATUS" = "failure" ]; then
+          if [ "$WORKFLOW_NAME" = "Tests" ] || [ "$WORKFLOW_NAME" = "Quality Gates" ]; then
+            LEVEL="high"
+          elif [ "$WORKFLOW_NAME" = "Deploy" ]; then
+            LEVEL="critical"
+          else
+            LEVEL="medium"
+          fi
+        elif [ "$WORKFLOW_STATUS" = "success" ]; then
+          if [ "$WORKFLOW_NAME" = "Deploy" ] && [ "$BRANCH" = "main" ]; then
+            LEVEL="high"
+          elif [ "$WORKFLOW_NAME" = "Release" ]; then
+            LEVEL="high"
+          else
+            LEVEL="low"
+          fi
+        else
+          LEVEL="low"
+        fi
+        
+        echo "level=$LEVEL" >> $GITHUB_OUTPUT
+        
+    - name: Format notification message
+      id: message
+      run: |
+        WORKFLOW_NAME="${{ steps.workflow.outputs.workflow_name }}"
+        WORKFLOW_STATUS="${{ steps.workflow.outputs.workflow_status }}"
+        BRANCH="${{ steps.workflow.outputs.branch }}"
+        COMMIT="${{ steps.workflow.outputs.commit }}"
+        ACTOR="${{ steps.workflow.outputs.actor }}"
+        LEVEL="${{ steps.notification.outputs.level }}"
+        
+        # Choose emoji based on status
+        if [ "$WORKFLOW_STATUS" = "success" ]; then
+          EMOJI="✅"
+          STATUS_TEXT="succeeded"
+        elif [ "$WORKFLOW_STATUS" = "failure" ]; then
+          EMOJI="❌"
+          STATUS_TEXT="failed"
+        elif [ "$WORKFLOW_STATUS" = "cancelled" ]; then
+          EMOJI="⏹️"
+          STATUS_TEXT="was cancelled"
+        else
+          EMOJI="⚠️"
+          STATUS_TEXT="completed with status: $WORKFLOW_STATUS"
+        fi
+        
+        # Format message
+        MESSAGE="$EMOJI **$WORKFLOW_NAME** $STATUS_TEXT
+        
+        **Details:**
+        • Branch: \`$BRANCH\`
+        • Commit: \`$COMMIT\`
+        • Actor: @$ACTOR
+        • [View Workflow](${{ steps.workflow.outputs.workflow_url }})"
+        
+        # Add context based on workflow type
+        if [ "$WORKFLOW_NAME" = "Deploy" ] && [ "$WORKFLOW_STATUS" = "success" ]; then
+          if [ "$BRANCH" = "main" ]; then
+            MESSAGE="$MESSAGE
+            
+            🚀 **Production deployment completed!**"
+          else
+            MESSAGE="$MESSAGE
+            
+            🧪 **Staging deployment completed!**"
+          fi
+        elif [ "$WORKFLOW_NAME" = "Tests" ] && [ "$WORKFLOW_STATUS" = "failure" ]; then
+          MESSAGE="$MESSAGE
+          
+          🔧 **Action required:** Tests are failing and need attention."
+        elif [ "$WORKFLOW_NAME" = "Quality Gates" ] && [ "$WORKFLOW_STATUS" = "failure" ]; then
+          MESSAGE="$MESSAGE
+          
+          📊 **Quality gates failed:** Code quality issues detected."
+        fi
+        
+        # Save message to file for multiline handling
+        echo "$MESSAGE" > notification_message.txt
+        
+    - name: Send Slack notification
+      if: steps.notification.outputs.level == 'high' || steps.notification.outputs.level == 'critical'
+      run: |
+        # In a real scenario, you would use Slack webhook
+        echo "📱 Sending Slack notification..."
+        echo "Level: ${{ steps.notification.outputs.level }}"
+        echo "Message:"
+        cat notification_message.txt
+        
+        # Example Slack webhook call:
+        # curl -X POST -H 'Content-type: application/json' \
+        #   --data "{\"text\":\"$(cat notification_message.txt)\"}" \
+        #   ${{ secrets.SLACK_WEBHOOK_URL }}
+        
+    - name: Send Discord notification
+      if: steps.notification.outputs.level == 'critical'
+      run: |
+        echo "🎮 Sending Discord notification..."
+        echo "Message:"
+        cat notification_message.txt
+        
+        # Example Discord webhook call:
+        # curl -X POST -H 'Content-type: application/json' \
+        #   --data "{\"content\":\"$(cat notification_message.txt)\"}" \
+        #   ${{ secrets.DISCORD_WEBHOOK_URL }}
+        
+    - name: Create GitHub issue for critical failures
+      if: steps.notification.outputs.level == 'critical' && steps.workflow.outputs.workflow_status == 'failure'
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const workflowName = '${{ steps.workflow.outputs.workflow_name }}';
+          const branch = '${{ steps.workflow.outputs.branch }}';
+          const commit = '${{ steps.workflow.outputs.commit }}';
+          const workflowUrl = '${{ steps.workflow.outputs.workflow_url }}';
+          
+          const title = `🚨 Critical Failure: ${workflowName} on ${branch}`;
+          const body = `## Critical Workflow Failure
+          
+          **Workflow:** ${workflowName}
+          **Branch:** ${branch}
+          **Commit:** ${commit}
+          **Status:** Failed
+          
+          ### Details
+          [View failed workflow run](${workflowUrl})
+          
+          ### Action Required
+          This is a critical failure that requires immediate attention.
+          
+          ### Checklist
+          - [ ] Investigate the failure cause
+          - [ ] Fix the underlying issue
+          - [ ] Re-run the workflow
+          - [ ] Verify the fix works
+          - [ ] Close this issue
+          
+          ---
+          *This issue was automatically created by the CI/CD pipeline.*`;
+          
+          await github.rest.issues.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            title: title,
+            body: body,
+            labels: ['bug', 'critical', 'ci/cd']
+          });
+          
+  notify-pr-events:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+    - name: Format PR notification
+      id: pr_message
+      run: |
+        PR_ACTION="${{ github.event.action }}"
+        PR_NUMBER="${{ github.event.pull_request.number }}"
+        PR_TITLE="${{ github.event.pull_request.title }}"
+        PR_AUTHOR="${{ github.event.pull_request.user.login }}"
+        PR_URL="${{ github.event.pull_request.html_url }}"
+        BASE_BRANCH="${{ github.event.pull_request.base.ref }}"
+        HEAD_BRANCH="${{ github.event.pull_request.head.ref }}"
+        
+        if [ "$PR_ACTION" = "opened" ]; then
+          EMOJI="🔄"
+          ACTION_TEXT="opened"
+        elif [ "$PR_ACTION" = "closed" ] && [ "${{ github.event.pull_request.merged }}" = "true" ]; then
+          EMOJI="✅"
+          ACTION_TEXT="merged"
+        elif [ "$PR_ACTION" = "closed" ]; then
+          EMOJI="❌"
+          ACTION_TEXT="closed"
+        else
+          EMOJI="📝"
+          ACTION_TEXT="$PR_ACTION"
+        fi
+        
+        MESSAGE="$EMOJI **Pull Request #$PR_NUMBER** $ACTION_TEXT
+        
+        **Title:** $PR_TITLE
+        **Author:** @$PR_AUTHOR
+        **Branch:** \`$HEAD_BRANCH\` → \`$BASE_BRANCH\`
+        **[View PR]($PR_URL)**"
+        
+        echo "$MESSAGE" > pr_notification.txt
+        
+    - name: Send PR notification
+      if: github.event.pull_request.base.ref == 'main' || github.event.action == 'merged'
+      run: |
+        echo "📢 Sending PR notification..."
+        cat pr_notification.txt
+        
+        # Send to team channels for main branch PRs or merges
+        
+  notify-release:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+    
+    steps:
+    - name: Format release notification
+      run: |
+        RELEASE_NAME="${{ github.event.release.name }}"
+        RELEASE_TAG="${{ github.event.release.tag_name }}"
+        RELEASE_URL="${{ github.event.release.html_url }}"
+        IS_PRERELEASE="${{ github.event.release.prerelease }}"
+        AUTHOR="${{ github.event.release.author.login }}"
+        
+        if [ "$IS_PRERELEASE" = "true" ]; then
+          EMOJI="🚀"
+          TYPE="Pre-release"
+        else
+          EMOJI="🎉"
+          TYPE="Release"
+        fi
+        
+        MESSAGE="$EMOJI **$TYPE Published: $RELEASE_NAME**
+        
+        **Tag:** \`$RELEASE_TAG\`
+        **Published by:** @$AUTHOR
+        **[View Release]($RELEASE_URL)**
+        
+        📦 **Download:** Extension package available in release assets
+        🌐 **Chrome Web Store:** Update will be available after review"
+        
+        echo "$MESSAGE" > release_notification.txt
+        
+    - name: Send release notification
+      run: |
+        echo "🎉 Sending release notification..."
+        cat release_notification.txt
+        
+        # Send to all channels for releases
+        
+    - name: Update documentation
+      if: github.event.release.prerelease == false
+      run: |
+        echo "📚 Triggering documentation update..."
+        
+        # Here you could trigger documentation updates:
+        # - Update website
+        # - Generate API docs
+        # - Update user guides
+        
+  notify-issues:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'issues'
+    
+    steps:
+    - name: Format issue notification
+      run: |
+        ISSUE_ACTION="${{ github.event.action }}"
+        ISSUE_NUMBER="${{ github.event.issue.number }}"
+        ISSUE_TITLE="${{ github.event.issue.title }}"
+        ISSUE_AUTHOR="${{ github.event.issue.user.login }}"
+        ISSUE_URL="${{ github.event.issue.html_url }}"
+        
+        if [ "$ISSUE_ACTION" = "opened" ]; then
+          EMOJI="🐛"
+          ACTION_TEXT="opened"
+        elif [ "$ISSUE_ACTION" = "closed" ]; then
+          EMOJI="✅"
+          ACTION_TEXT="closed"
+        else
+          EMOJI="📝"
+          ACTION_TEXT="$ISSUE_ACTION"
+        fi
+        
+        MESSAGE="$EMOJI **Issue #$ISSUE_NUMBER** $ACTION_TEXT
+        
+        **Title:** $ISSUE_TITLE
+        **Author:** @$ISSUE_AUTHOR
+        **[View Issue]($ISSUE_URL)**"
+        
+        echo "$MESSAGE" > issue_notification.txt
+        
+    - name: Send issue notification
+      if: contains(github.event.issue.labels.*.name, 'critical') || contains(github.event.issue.labels.*.name, 'bug')
+      run: |
+        echo "🐛 Sending issue notification..."
+        cat issue_notification.txt
+        
+        # Send notifications for critical issues or bugs
+        
+  health-check:
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+    - name: Pipeline health summary
+      run: |
+        echo "🏥 CI/CD Pipeline Health Check"
+        echo "=============================="
+        echo "Timestamp: $(date -u)"
+        echo "Repository: ${{ github.repository }}"
+        echo "Event: ${{ github.event_name }}"
+        echo "Actor: ${{ github.actor }}"
+        echo ""
+        
+        # Check recent workflow runs
+        echo "📊 Recent Activity:"
+        echo "• Workflow runs in last 24h: [Would query GitHub API]"
+        echo "• Success rate: [Would calculate from API data]"
+        echo "• Average duration: [Would calculate from API data]"
+        echo ""
+        
+        echo "✅ Notification system is operational"

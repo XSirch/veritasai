@@ -1,0 +1,391 @@
+name: Quality Gates
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+env:
+  MIN_COVERAGE: 80
+  MIN_UNIT_COVERAGE: 85
+  MIN_INTEGRATION_COVERAGE: 70
+  MAX_BUNDLE_SIZE: 5242880  # 5MB in bytes
+  MAX_TOTAL_SIZE: 52428800  # 50MB in bytes
+
+jobs:
+  coverage-gate:
+    runs-on: ubuntu-latest
+    
+    services:
+      qdrant:
+        image: qdrant/qdrant:v1.15.0
+        ports:
+          - 6333:6333
+        options: >-
+          --health-cmd "curl -f http://localhost:6333/health || exit 1"
+          --health-interval 30s
+          --health-timeout 10s
+          --health-retries 5
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Use Node.js 20.x
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20.x
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Wait for Qdrant to be ready
+      run: |
+        timeout 60s bash -c 'until curl -f http://localhost:6333/health; do sleep 2; done'
+        
+    - name: Run coverage tests
+      run: npm run test:coverage
+      env:
+        NODE_ENV: test
+        QDRANT_HOST: localhost
+        QDRANT_PORT: 6333
+        
+    - name: Parse coverage results
+      id: coverage
+      run: |
+        # Parse coverage from lcov.info or coverage-summary.json
+        if [ -f coverage/coverage-summary.json ]; then
+          TOTAL_COVERAGE=$(node -e "
+            const summary = require('./coverage/coverage-summary.json');
+            console.log(summary.total.lines.pct);
+          ")
+          
+          UNIT_COVERAGE=$(node -e "
+            const summary = require('./coverage/coverage-summary.json');
+            // Calculate unit test coverage (services and utils)
+            let totalLines = 0;
+            let coveredLines = 0;
+            
+            Object.keys(summary).forEach(file => {
+              if (file.includes('/services/') || file.includes('/utils/')) {
+                totalLines += summary[file].lines.total;
+                coveredLines += summary[file].lines.covered;
+              }
+            });
+            
+            const unitCoverage = totalLines > 0 ? (coveredLines / totalLines * 100) : 0;
+            console.log(Math.round(unitCoverage * 100) / 100);
+          ")
+          
+          echo "total_coverage=$TOTAL_COVERAGE" >> $GITHUB_OUTPUT
+          echo "unit_coverage=$UNIT_COVERAGE" >> $GITHUB_OUTPUT
+          
+          echo "Total Coverage: $TOTAL_COVERAGE%"
+          echo "Unit Coverage: $UNIT_COVERAGE%"
+        else
+          echo "Coverage summary not found"
+          exit 1
+        fi
+        
+    - name: Check coverage thresholds
+      run: |
+        TOTAL_COVERAGE="${{ steps.coverage.outputs.total_coverage }}"
+        UNIT_COVERAGE="${{ steps.coverage.outputs.unit_coverage }}"
+        
+        echo "🔍 Checking coverage thresholds..."
+        echo "Total Coverage: $TOTAL_COVERAGE% (minimum: $MIN_COVERAGE%)"
+        echo "Unit Coverage: $UNIT_COVERAGE% (minimum: $MIN_UNIT_COVERAGE%)"
+        
+        FAILED=false
+        
+        if (( $(echo "$TOTAL_COVERAGE < $MIN_COVERAGE" | bc -l) )); then
+          echo "❌ Total coverage ($TOTAL_COVERAGE%) is below minimum ($MIN_COVERAGE%)"
+          FAILED=true
+        fi
+        
+        if (( $(echo "$UNIT_COVERAGE < $MIN_UNIT_COVERAGE" | bc -l) )); then
+          echo "❌ Unit coverage ($UNIT_COVERAGE%) is below minimum ($MIN_UNIT_COVERAGE%)"
+          FAILED=true
+        fi
+        
+        if [ "$FAILED" = true ]; then
+          echo "💡 Tip: Add more tests to increase coverage"
+          exit 1
+        fi
+        
+        echo "✅ All coverage thresholds met!"
+        
+    - name: Generate coverage badge
+      run: |
+        TOTAL_COVERAGE="${{ steps.coverage.outputs.total_coverage }}"
+        
+        # Create coverage badge data
+        if (( $(echo "$TOTAL_COVERAGE >= 90" | bc -l) )); then
+          COLOR="brightgreen"
+        elif (( $(echo "$TOTAL_COVERAGE >= 80" | bc -l) )); then
+          COLOR="green"
+        elif (( $(echo "$TOTAL_COVERAGE >= 70" | bc -l) )); then
+          COLOR="yellow"
+        elif (( $(echo "$TOTAL_COVERAGE >= 60" | bc -l) )); then
+          COLOR="orange"
+        else
+          COLOR="red"
+        fi
+        
+        echo "Coverage: $TOTAL_COVERAGE% ($COLOR)"
+        
+  performance-gate:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Use Node.js 20.x
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20.x
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Build extension
+      run: npm run build:production
+      
+    - name: Check bundle sizes
+      run: |
+        echo "🔍 Checking bundle sizes..."
+        
+        # Check individual file sizes
+        find dist -type f -name "*.js" -o -name "*.css" | while read file; do
+          SIZE=$(stat -f%z "$file" 2>/dev/null || stat -c%s "$file")
+          SIZE_MB=$(echo "scale=2; $SIZE / 1024 / 1024" | bc)
+          
+          echo "File: $file - Size: ${SIZE_MB}MB"
+          
+          if [ $SIZE -gt $MAX_BUNDLE_SIZE ]; then
+            echo "❌ File $file (${SIZE_MB}MB) exceeds maximum size (5MB)"
+            exit 1
+          fi
+        done
+        
+        # Check total size
+        TOTAL_SIZE=$(du -sb dist | cut -f1)
+        TOTAL_SIZE_MB=$(echo "scale=2; $TOTAL_SIZE / 1024 / 1024" | bc)
+        
+        echo "Total bundle size: ${TOTAL_SIZE_MB}MB"
+        
+        if [ $TOTAL_SIZE -gt $MAX_TOTAL_SIZE ]; then
+          echo "❌ Total bundle size (${TOTAL_SIZE_MB}MB) exceeds maximum (50MB)"
+          exit 1
+        fi
+        
+        echo "✅ All bundle size checks passed!"
+        
+    - name: Performance audit
+      run: |
+        echo "🔍 Running performance audit..."
+        
+        # Check for performance anti-patterns
+        echo "Checking for performance issues..."
+        
+        # Check for synchronous operations in background scripts
+        if grep -r "XMLHttpRequest\|fetch.*await.*fetch\|setTimeout.*0" dist/background.js; then
+          echo "⚠️ Potential performance issues found in background script"
+        fi
+        
+        # Check for large dependencies
+        echo "Checking dependency sizes..."
+        npm list --depth=0 --json | node -e "
+          const deps = JSON.parse(require('fs').readFileSync('/dev/stdin', 'utf8'));
+          const largeDeps = [];
+          
+          // This is a simplified check - in practice you'd analyze actual bundle sizes
+          Object.keys(deps.dependencies || {}).forEach(dep => {
+            // Flag potentially large dependencies
+            if (dep.includes('tensorflow') || dep.includes('pytorch') || dep.includes('opencv')) {
+              largeDeps.push(dep);
+            }
+          });
+          
+          if (largeDeps.length > 0) {
+            console.log('⚠️ Large dependencies detected:', largeDeps.join(', '));
+            console.log('Consider lazy loading or alternatives');
+          } else {
+            console.log('✅ No obviously large dependencies detected');
+          }
+        "
+        
+        echo "✅ Performance audit completed!"
+        
+  security-gate:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Use Node.js 20.x
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20.x
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Security audit
+      run: |
+        echo "🔍 Running security audit..."
+        
+        # Check for high/critical vulnerabilities
+        npm audit --audit-level=high --json > audit-results.json || true
+        
+        HIGH_VULNS=$(cat audit-results.json | jq '.metadata.vulnerabilities.high // 0')
+        CRITICAL_VULNS=$(cat audit-results.json | jq '.metadata.vulnerabilities.critical // 0')
+        
+        echo "High vulnerabilities: $HIGH_VULNS"
+        echo "Critical vulnerabilities: $CRITICAL_VULNS"
+        
+        if [ "$CRITICAL_VULNS" -gt 0 ]; then
+          echo "❌ Critical vulnerabilities found! Must be fixed before merge."
+          npm audit --audit-level=critical
+          exit 1
+        fi
+        
+        if [ "$HIGH_VULNS" -gt 0 ]; then
+          echo "⚠️ High vulnerabilities found. Consider fixing:"
+          npm audit --audit-level=high
+        fi
+        
+        echo "✅ Security audit passed!"
+        
+    - name: Check for secrets
+      run: |
+        echo "🔍 Checking for potential secrets..."
+        
+        # Use git-secrets or similar tool
+        # For now, simple grep patterns
+        if grep -r -i "api[_-]key\|secret\|password\|token" src/ --exclude-dir=node_modules | grep -v "placeholder\|example\|test"; then
+          echo "❌ Potential secrets found in source code!"
+          echo "Please remove any hardcoded secrets"
+          exit 1
+        fi
+        
+        echo "✅ No secrets detected in source code"
+        
+  code-quality-gate:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Use Node.js 20.x
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20.x
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Lint check
+      run: |
+        echo "🔍 Running linting..."
+        npm run lint 2>&1 | tee lint-results.txt
+        
+        # Check if there are any errors (not warnings)
+        if grep -q "error" lint-results.txt; then
+          echo "❌ Linting errors found! Must be fixed."
+          exit 1
+        fi
+        
+        # Count warnings
+        WARNING_COUNT=$(grep -c "warning" lint-results.txt || echo "0")
+        echo "Linting warnings: $WARNING_COUNT"
+        
+        if [ "$WARNING_COUNT" -gt 50 ]; then
+          echo "⚠️ Too many linting warnings ($WARNING_COUNT). Consider fixing some."
+        fi
+        
+        echo "✅ Linting passed!"
+        
+    - name: Code complexity check
+      run: |
+        echo "🔍 Checking code complexity..."
+        
+        # Install complexity checker
+        npm install -g complexity-report
+        
+        # Check complexity of main files
+        find src/services -name "*.js" | while read file; do
+          echo "Checking complexity of $file..."
+          cr --format json "$file" > complexity.json || true
+          
+          # Parse complexity (simplified)
+          if [ -f complexity.json ]; then
+            COMPLEXITY=$(cat complexity.json | jq '.reports[0].complexity.cyclomatic // 0')
+            if [ "$COMPLEXITY" -gt 20 ]; then
+              echo "⚠️ High complexity in $file: $COMPLEXITY"
+            fi
+          fi
+        done
+        
+        echo "✅ Complexity check completed!"
+        
+    - name: Documentation check
+      run: |
+        echo "🔍 Checking documentation..."
+        
+        # Check if README is up to date
+        if [ ! -f README.md ]; then
+          echo "❌ README.md not found!"
+          exit 1
+        fi
+        
+        # Check if main files have JSDoc comments
+        UNDOCUMENTED=$(find src/services -name "*.js" -exec grep -L "\/\*\*" {} \; | wc -l)
+        
+        if [ "$UNDOCUMENTED" -gt 0 ]; then
+          echo "⚠️ $UNDOCUMENTED files lack JSDoc documentation"
+          find src/services -name "*.js" -exec grep -L "\/\*\*" {} \;
+        fi
+        
+        echo "✅ Documentation check completed!"
+        
+  quality-summary:
+    runs-on: ubuntu-latest
+    needs: [coverage-gate, performance-gate, security-gate, code-quality-gate]
+    if: always()
+    
+    steps:
+    - name: Quality Gates Summary
+      run: |
+        echo "📊 Quality Gates Summary"
+        echo "======================="
+        
+        COVERAGE_STATUS="${{ needs.coverage-gate.result }}"
+        PERFORMANCE_STATUS="${{ needs.performance-gate.result }}"
+        SECURITY_STATUS="${{ needs.security-gate.result }}"
+        CODE_QUALITY_STATUS="${{ needs.code-quality-gate.result }}"
+        
+        echo "Coverage Gate: $COVERAGE_STATUS"
+        echo "Performance Gate: $PERFORMANCE_STATUS"
+        echo "Security Gate: $SECURITY_STATUS"
+        echo "Code Quality Gate: $CODE_QUALITY_STATUS"
+        
+        if [ "$COVERAGE_STATUS" = "success" ] && [ "$PERFORMANCE_STATUS" = "success" ] && [ "$SECURITY_STATUS" = "success" ] && [ "$CODE_QUALITY_STATUS" = "success" ]; then
+          echo ""
+          echo "✅ All quality gates passed!"
+          echo "🚀 Code is ready for merge/deployment"
+        else
+          echo ""
+          echo "❌ Some quality gates failed!"
+          echo "🔧 Please fix the issues before proceeding"
+          exit 1
+        fi
