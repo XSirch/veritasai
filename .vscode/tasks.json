@@ -704,7 +704,7 @@
       "description": "Script que detecta seleção de texto e injeta UI na página",
       "sprint": 5,
       "milestone": "M3.1",
-      "status": "not_started",
+      "status": "completed",
       "priority": "critical",
       "effort_hours": 16,
       "story_points": 8,

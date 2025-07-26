@@ -77,16 +77,16 @@ jobs:
         
         # Choose emoji based on status
         if [ "$WORKFLOW_STATUS" = "success" ]; then
-          EMOJI="✅"
+          EMOJI=""
           STATUS_TEXT="succeeded"
         elif [ "$WORKFLOW_STATUS" = "failure" ]; then
-          EMOJI="❌"
+          EMOJI=""
           STATUS_TEXT="failed"
         elif [ "$WORKFLOW_STATUS" = "cancelled" ]; then
           EMOJI="⏹️"
           STATUS_TEXT="was cancelled"
         else
-          EMOJI="⚠️"
+          EMOJI=""
           STATUS_TEXT="completed with status: $WORKFLOW_STATUS"
         fi
         
@@ -104,20 +104,20 @@ jobs:
           if [ "$BRANCH" = "main" ]; then
             MESSAGE="$MESSAGE
             
-            🚀 **Production deployment completed!**"
+            **Production deployment completed!**"
           else
             MESSAGE="$MESSAGE
             
-            🧪 **Staging deployment completed!**"
+            **Staging deployment completed!**"
           fi
         elif [ "$WORKFLOW_NAME" = "Tests" ] && [ "$WORKFLOW_STATUS" = "failure" ]; then
           MESSAGE="$MESSAGE
           
-          🔧 **Action required:** Tests are failing and need attention."
+          **Action required:** Tests are failing and need attention."
         elif [ "$WORKFLOW_NAME" = "Quality Gates" ] && [ "$WORKFLOW_STATUS" = "failure" ]; then
           MESSAGE="$MESSAGE
           
-          📊 **Quality gates failed:** Code quality issues detected."
+          **Quality gates failed:** Code quality issues detected."
         fi
         
         # Save message to file for multiline handling
@@ -127,7 +127,7 @@ jobs:
       if: steps.notification.outputs.level == 'high' || steps.notification.outputs.level == 'critical'
       run: |
         # In a real scenario, you would use Slack webhook
-        echo "📱 Sending Slack notification..."
+        echo "Sending Slack notification..."
         echo "Level: ${{ steps.notification.outputs.level }}"
         echo "Message:"
         cat notification_message.txt
@@ -211,10 +211,10 @@ jobs:
           EMOJI="🔄"
           ACTION_TEXT="opened"
         elif [ "$PR_ACTION" = "closed" ] && [ "${{ github.event.pull_request.merged }}" = "true" ]; then
-          EMOJI="✅"
+          EMOJI=""
           ACTION_TEXT="merged"
         elif [ "$PR_ACTION" = "closed" ]; then
-          EMOJI="❌"
+          EMOJI=""
           ACTION_TEXT="closed"
         else
           EMOJI="📝"
@@ -233,7 +233,7 @@ jobs:
     - name: Send PR notification
       if: github.event.pull_request.base.ref == 'main' || github.event.action == 'merged'
       run: |
-        echo "📢 Sending PR notification..."
+        echo "Sending PR notification..."
         cat pr_notification.txt
         
         # Send to team channels for main branch PRs or merges
@@ -252,10 +252,10 @@ jobs:
         AUTHOR="${{ github.event.release.author.login }}"
         
         if [ "$IS_PRERELEASE" = "true" ]; then
-          EMOJI="🚀"
+          EMOJI=""
           TYPE="Pre-release"
         else
-          EMOJI="🎉"
+          EMOJI=""
           TYPE="Release"
         fi
         
@@ -265,14 +265,14 @@ jobs:
         **Published by:** @$AUTHOR
         **[View Release]($RELEASE_URL)**
         
-        📦 **Download:** Extension package available in release assets
-        🌐 **Chrome Web Store:** Update will be available after review"
+        **Download:** Extension package available in release assets
+        **Chrome Web Store:** Update will be available after review"
         
         echo "$MESSAGE" > release_notification.txt
         
     - name: Send release notification
       run: |
-        echo "🎉 Sending release notification..."
+        echo "Sending release notification..."
         cat release_notification.txt
         
         # Send to all channels for releases
@@ -304,7 +304,7 @@ jobs:
           EMOJI="🐛"
           ACTION_TEXT="opened"
         elif [ "$ISSUE_ACTION" = "closed" ]; then
-          EMOJI="✅"
+          EMOJI=""
           ACTION_TEXT="closed"
         else
           EMOJI="📝"
@@ -343,10 +343,10 @@ jobs:
         echo ""
         
         # Check recent workflow runs
-        echo "📊 Recent Activity:"
+        echo "Recent Activity:"
         echo "• Workflow runs in last 24h: [Would query GitHub API]"
         echo "• Success rate: [Would calculate from API data]"
         echo "• Average duration: [Would calculate from API data]"
         echo ""
         
-        echo "✅ Notification system is operational"
+        echo "Notification system is operational"

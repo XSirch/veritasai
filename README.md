@@ -20,8 +20,8 @@ O sistema utiliza uma arquitetura híbrida com:
 
 ## 📊 Status do Projeto
 
-**Progresso atual**: 100% (15/15 tarefas principais concluídas)
-**Sprint atual**: 4 - CONCLUÍDO
+**Progresso atual**: 100% (16/16 tarefas principais concluídas)
+**Sprint atual**: 5 - EM ANDAMENTO
 **Última atualização**: 2025-01-23
 
 ### ✅ Implementado
@@ -40,6 +40,7 @@ O sistema utiliza uma arquitetura híbrida com:
 - **VER-013**: QdrantClient (Cliente para busca vetorial e armazenamento)
 - **VER-014**: EmbeddingService (Geração de embeddings com Transformers.js)
 - **VER-015**: HybridAnalyzer (Orquestrador principal híbrido)
+- **VER-016**: Content Script (Detecção de texto e injeção de UI modular)
 
 ### 🔄 Próximo
 - **VER-014**: EmbeddingService (Geração de embeddings)

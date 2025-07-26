@@ -13,7 +13,7 @@ jobs:
     
     strategy:
       matrix:
-        node-version: [18.x, 20.x]
+        node-version: ["18.x", "20.x"]
     
     services:
       qdrant:
@@ -220,10 +220,10 @@ jobs:
     - name: Notify success
       if: needs.test.result == 'success' && needs.test-e2e.result == 'success' && needs.security-scan.result == 'success' && needs.quality-check.result == 'success'
       run: |
-        echo "✅ All tests passed successfully!"
+        echo "All tests passed successfully!"
         
     - name: Notify failure
       if: needs.test.result == 'failure' || needs.test-e2e.result == 'failure' || needs.security-scan.result == 'failure' || needs.quality-check.result == 'failure'
       run: |
-        echo "❌ Some tests failed!"
+        echo "ERROR: Some tests failed!"
         exit 1

@@ -79,7 +79,7 @@ jobs:
     - name: Use Node.js 20.x
       uses: actions/setup-node@v4
       with:
-        node-version: 20.x
+        node-version: "20.x"
         cache: 'npm'
         
     - name: Install dependencies
@@ -108,7 +108,7 @@ jobs:
         # Check security
         npm audit --audit-level=high
         
-        echo "✅ Pre-deploy checks passed!"
+        echo "Pre-deploy checks passed!"
         
   build-for-deploy:
     runs-on: ubuntu-latest
@@ -122,7 +122,7 @@ jobs:
     - name: Use Node.js 20.x
       uses: actions/setup-node@v4
       with:
-        node-version: 20.x
+        node-version: "20.x"
         cache: 'npm'
         
     - name: Install dependencies
@@ -184,14 +184,14 @@ jobs:
         
     - name: Deploy to staging environment
       run: |
-        echo "🚀 Deploying to staging environment..."
+        echo "Deploying to staging environment..."
         
         # Extract package
         unzip -q veritasai-staging-*.zip -d staging-deploy/
         
         # Validate deployment package
         if [ ! -f staging-deploy/manifest.json ]; then
-          echo "❌ Invalid deployment package - manifest.json not found"
+          echo "Invalid deployment package - manifest.json not found"
           exit 1
         fi
         
@@ -201,21 +201,21 @@ jobs:
         # 3. Update staging database
         # 4. Run smoke tests
         
-        echo "📦 Package contents:"
+        echo "Package contents:"
         ls -la staging-deploy/
         
-        echo "📋 Manifest info:"
+        echo "Manifest info:"
         cat staging-deploy/manifest.json | jq '.name, .version'
         
         # Simulate deployment
-        echo "✅ Staging deployment completed successfully!"
+        echo "Staging deployment completed successfully!"
         
         # Set deployment URL for later steps
         echo "DEPLOYMENT_URL=https://staging.veritasai.com" >> $GITHUB_ENV
         
     - name: Run post-deploy tests
       run: |
-        echo "🧪 Running post-deployment tests..."
+        echo "Running post-deployment tests..."
         
         # Here you would run smoke tests against the deployed staging environment
         # For example:
@@ -223,17 +223,17 @@ jobs:
         # - Test basic functionality
         # - Verify API connectivity
         
-        echo "✅ Post-deploy tests passed!"
+        echo "Post-deploy tests passed!"
         
     - name: Update staging status
       run: |
-        echo "📊 Updating staging deployment status..."
+        echo "Updating staging deployment status..."
         
         # Here you could update deployment tracking systems
         # Send notifications to team
         # Update status dashboards
         
-        echo "✅ Staging status updated!"
+        echo "Staging status updated!"
         
   deploy-production:
     runs-on: ubuntu-latest
@@ -249,14 +249,14 @@ jobs:
         
     - name: Pre-production validation
       run: |
-        echo "🔍 Running pre-production validation..."
+        echo "Running pre-production validation..."
         
         # Extract and validate package
         unzip -q veritasai-production-*.zip -d production-deploy/
         
         # Validate manifest
         if [ ! -f production-deploy/manifest.json ]; then
-          echo "❌ Invalid deployment package"
+          echo "Invalid deployment package"
           exit 1
         fi
         
@@ -268,16 +268,16 @@ jobs:
         required_files=("background.js" "content.js" "popup.html")
         for file in "${required_files[@]}"; do
           if [ ! -f "production-deploy/$file" ]; then
-            echo "❌ Required file $file not found"
+            echo "Required file $file not found"
             exit 1
           fi
         done
         
-        echo "✅ Pre-production validation passed!"
+        echo "Pre-production validation passed!"
         
     - name: Deploy to Chrome Web Store
       run: |
-        echo "🚀 Deploying to Chrome Web Store..."
+        echo "Deploying to Chrome Web Store..."
         
         # Install chrome-webstore-upload-cli
         npm install -g chrome-webstore-upload-cli
@@ -290,15 +290,15 @@ jobs:
         #   --refresh-token ${{ secrets.CHROME_REFRESH_TOKEN }} \
         #   --auto-publish
         
-        echo "📦 Package uploaded to Chrome Web Store"
-        echo "⏳ Waiting for review process..."
+        echo "Package uploaded to Chrome Web Store"
+        echo "Waiting for review process..."
         
         # Simulate successful upload
-        echo "✅ Chrome Web Store deployment initiated!"
+        echo "Chrome Web Store deployment initiated!"
         
     - name: Deploy to production infrastructure
       run: |
-        echo "🚀 Deploying to production infrastructure..."
+        echo "Deploying to production infrastructure..."
         
         # Here you would deploy supporting infrastructure:
         # - API servers
@@ -306,28 +306,28 @@ jobs:
         # - CDN updates
         # - Documentation sites
         
-        echo "✅ Production infrastructure updated!"
+        echo "Production infrastructure updated!"
         
     - name: Run production smoke tests
       run: |
-        echo "🧪 Running production smoke tests..."
+        echo "Running production smoke tests..."
         
         # Critical production tests
         # - API health checks
         # - Database connectivity
         # - External service integrations
         
-        echo "✅ Production smoke tests passed!"
+        echo "Production smoke tests passed!"
         
     - name: Update production status
       run: |
-        echo "📊 Updating production deployment status..."
+        echo "Updating production deployment status..."
         
         # Update monitoring systems
         # Send success notifications
         # Update status pages
         
-        echo "✅ Production deployment completed successfully!"
+        echo "Production deployment completed successfully!"
         
   post-deploy:
     runs-on: ubuntu-latest
@@ -345,7 +345,7 @@ jobs:
           DEPLOY_STATUS="${{ needs.deploy-production.result }}"
         fi
         
-        echo "📊 Deployment Summary"
+        echo "Deployment Summary"
         echo "===================="
         echo "Environment: $ENVIRONMENT"
         echo "Status: $DEPLOY_STATUS"
@@ -356,18 +356,18 @@ jobs:
         
         if [ "$DEPLOY_STATUS" = "success" ]; then
           echo ""
-          echo "✅ Deployment completed successfully!"
+          echo "Deployment completed successfully!"
           
           if [ "$ENVIRONMENT" = "production" ]; then
-            echo "🌐 Extension will be available in Chrome Web Store after review"
-            echo "📱 Users will receive automatic updates"
+            echo "Extension will be available in Chrome Web Store after review"
+            echo "Users will receive automatic updates"
           elif [ "$ENVIRONMENT" = "staging" ]; then
-            echo "🧪 Staging environment updated for testing"
+            echo "Staging environment updated for testing"
           fi
         else
           echo ""
-          echo "❌ Deployment failed!"
-          echo "🔧 Please check the logs and fix any issues"
+          echo "Deployment failed!"
+          echo "Please check the logs and fix any issues"
         fi
         
     - name: Notify team
@@ -386,4 +386,4 @@ jobs:
         # - Email notifications
         # - Update issue trackers
         
-        echo "📢 Team notified of deployment status: $DEPLOY_STATUS"
+        echo "Team notified of deployment status: $DEPLOY_STATUS"

@@ -60,7 +60,7 @@ jobs:
           exit 1
         fi
         
-        echo "✅ Version format is valid"
+        echo "Version format is valid"
         
     - name: Check if version exists
       run: |
@@ -72,7 +72,7 @@ jobs:
           exit 1
         fi
         
-        echo "✅ Version is unique"
+        echo "Version is unique"
         
   build-release:
     runs-on: ubuntu-latest
@@ -85,7 +85,7 @@ jobs:
     - name: Use Node.js 20.x
       uses: actions/setup-node@v4
       with:
-        node-version: 20.x
+        node-version: "20.x"
         cache: 'npm'
         
     - name: Install dependencies
@@ -215,13 +215,13 @@ jobs:
         
     - name: Deploy to staging
       run: |
-        echo "🚀 Deploying v${{ needs.validate-release.outputs.version }} to staging..."
+        echo "Deploying v${{ needs.validate-release.outputs.version }} to staging..."
         
         # Here you would typically deploy to a staging environment
         # For example, upload to a staging Chrome Web Store account
         # or deploy to internal testing infrastructure
         
-        echo "✅ Staging deployment completed"
+        echo "Staging deployment completed"
         
   deploy-production:
     runs-on: ubuntu-latest
@@ -237,7 +237,7 @@ jobs:
         
     - name: Deploy to Chrome Web Store
       run: |
-        echo "🚀 Deploying v${{ needs.validate-release.outputs.version }} to Chrome Web Store..."
+        echo "Deploying v${{ needs.validate-release.outputs.version }} to Chrome Web Store..."
         
         # Install chrome-webstore-upload-cli
         npm install -g chrome-webstore-upload-cli
@@ -249,7 +249,7 @@ jobs:
         #   --client-secret ${{ secrets.CHROME_CLIENT_SECRET }} \
         #   --refresh-token ${{ secrets.CHROME_REFRESH_TOKEN }}
         
-        echo "✅ Production deployment completed"
+        echo "Production deployment completed"
         
     - name: Update documentation
       run: |
@@ -257,7 +257,7 @@ jobs:
         
         # Here you could update documentation, website, etc.
         
-        echo "✅ Documentation updated"
+        echo "Documentation updated"
         
   notify-release:
     runs-on: ubuntu-latest
@@ -272,16 +272,16 @@ jobs:
         IS_PRERELEASE="${{ needs.validate-release.outputs.is_prerelease }}"
         
         if [ "$IS_PRERELEASE" = "true" ]; then
-          echo "🎉 Pre-release v$VERSION created successfully!"
-          echo "📦 Available at: https://github.com/${{ github.repository }}/releases/tag/v$VERSION"
+          echo "Pre-release v$VERSION created successfully!"
+          echo "Available at: https://github.com/${{ github.repository }}/releases/tag/v$VERSION"
         else
-          echo "🎉 Release v$VERSION created and deployed successfully!"
-          echo "📦 Available at: https://github.com/${{ github.repository }}/releases/tag/v$VERSION"
-          echo "🌐 Chrome Web Store: (link will be available after review)"
+          echo "Release v$VERSION created and deployed successfully!"
+          echo "Available at: https://github.com/${{ github.repository }}/releases/tag/v$VERSION"
+          echo "Chrome Web Store: (link will be available after review)"
         fi
         
     - name: Notify failure
       if: needs.build-release.result == 'failure' || needs.create-github-release.result == 'failure'
       run: |
-        echo "❌ Release process failed!"
+        echo "Release process failed!"
         exit 1

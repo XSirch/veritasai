@@ -13,7 +13,7 @@ jobs:
     
     strategy:
       matrix:
-        environment: [development, staging, production]
+        environment: ["development", "staging", "production"]
     
     steps:
     - name: Checkout code
@@ -22,7 +22,7 @@ jobs:
     - name: Use Node.js 20.x
       uses: actions/setup-node@v4
       with:
-        node-version: 20.x
+        node-version: "20.x"
         cache: 'npm'
         
     - name: Install dependencies
@@ -185,7 +185,7 @@ jobs:
             throw new Error('Background script seems too small');
           }
           
-          console.log('✅ Built extension validation passed');
+          console.log('Built extension validation passed');
         "
         
     - name: Run extension in headless Chrome
@@ -201,7 +201,7 @@ jobs:
           const context = await browser.newContext();
           
           // Load extension (simplified test)
-          console.log('✅ Extension loading test passed');
+          console.log('Extension loading test passed');
           
           await browser.close();
         })();
@@ -228,22 +228,22 @@ jobs:
         find ./security-check/dist -name "*.js" -exec grep -l "eval\|innerHTML\|document.write" {} \; > potential_issues.txt || true
         
         if [ -s potential_issues.txt ]; then
-          echo "⚠️ Potential security issues found:"
+          echo "WARNING: Potential security issues found:"
           cat potential_issues.txt
           echo "Please review these files for security concerns"
         else
-          echo "✅ No obvious security issues found"
+          echo "No obvious security issues found"
         fi
         
         # Check for hardcoded secrets (basic check)
         find ./security-check/dist -name "*.js" -exec grep -i "api[_-]key\|secret\|password\|token" {} \; > secrets_check.txt || true
         
         if [ -s secrets_check.txt ]; then
-          echo "⚠️ Potential hardcoded secrets found:"
+          echo "WARNING: Potential hardcoded secrets found:"
           cat secrets_check.txt
           echo "Please ensure no secrets are hardcoded"
         else
-          echo "✅ No hardcoded secrets detected"
+          echo "No hardcoded secrets detected"
         fi
         
     - name: Check permissions in manifest
@@ -265,9 +265,9 @@ jobs:
           );
           
           if (hasBroadPermissions) {
-            console.log('⚠️ Extension uses broad permissions - ensure this is necessary');
+            console.log('WARNING: Extension uses broad permissions - ensure this is necessary');
           } else {
-            console.log('✅ Permissions appear appropriately scoped');
+            console.log('Permissions appear appropriately scoped');
           }
         "
         
@@ -280,10 +280,10 @@ jobs:
     - name: Notify build success
       if: needs.build.result == 'success' && needs.test-build.result == 'success' && needs.security-check.result == 'success'
       run: |
-        echo "✅ Build completed successfully for all environments!"
+        echo "Build completed successfully for all environments!"
         
     - name: Notify build failure
       if: needs.build.result == 'failure' || needs.test-build.result == 'failure' || needs.security-check.result == 'failure'
       run: |
-        echo "❌ Build failed!"
+        echo "ERROR: Build failed!"
         exit 1
