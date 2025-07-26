@@ -20,8 +20,8 @@ O sistema utiliza uma arquitetura híbrida com:
 
 ## 📊 Status do Projeto
 
-**Progresso atual**: 77% (10/13 tarefas principais concluídas)
-**Sprint atual**: 3
+**Progresso atual**: 92% (12/13 tarefas principais concluídas)
+**Sprint atual**: 4
 **Última atualização**: 2025-01-23
 
 ### ✅ Implementado
@@ -35,13 +35,16 @@ O sistema utiliza uma arquitetura híbrida com:
 - **VER-009**: TextProcessor (Normalização e processamento de texto)
 - **VER-010**: KeywordExtractor (Sistema de extração de palavras-chave com NLP)
 - **VER-011**: GoogleFactCheckService (Integração com Google Fact Check API)
+- **VER-012**: GroqLLMService (Sistema LLM com fallbacks inteligentes)
+- **VER-013**: QdrantClient (Cliente para busca vetorial e armazenamento)
 
 ### 🔄 Próximo
-- **VER-010**: KeywordExtractor (Extração de palavras-chave)
+- **VER-014**: EmbeddingService (Geração de embeddings)
+- **VER-015**: HybridAnalyzer (Orquestrador principal)
+- **VER-008**: CI/CD pipeline (GitHub Actions para automação)
 
 ### ⏸️ Bloqueado
-- Frontend (requer Node.js/npm)
-- Cache vetorial (requer Docker/Qdrant)
+- Frontend (requer implementação dos content/background scripts)
 
 📄 **[Ver status detalhado](CURRENT_STATUS.md)**
 
