@@ -56,10 +56,10 @@ export class CommunicationManager {
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       try {
         const handler = this.messageHandlers.get(request.action);
-        
+
         if (handler) {
           const result = handler(request.data, request);
-          
+
           // Se handler retorna Promise
           if (result && typeof result.then === 'function') {
             result
@@ -68,14 +68,17 @@ export class CommunicationManager {
             return true; // Indica resposta assíncrona
           } else {
             sendResponse({ success: true, data: result });
+            return false; // Resposta síncrona
           }
         } else {
           // Handler padrão para ações não registradas
           this.handleDefaultMessage(request, sendResponse);
+          return false; // Resposta síncrona
         }
       } catch (error) {
         console.error('Erro no message listener:', error);
         sendResponse({ success: false, error: error.message });
+        return false; // Resposta síncrona
       }
     });
   }

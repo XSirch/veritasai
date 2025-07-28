@@ -1,0 +1,216 @@
+name: Coverage Report
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Executar diariamente às 6:00 UTC
+    - cron: '0 6 * * *'
+
+jobs:
+  coverage-report:
+    name: Generate Coverage Report
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Setup Qdrant
+      run: |
+        docker run -d --name qdrant -p 6333:6333 qdrant/qdrant:v1.15.0
+        sleep 10
+    
+    - name: Run unit tests with coverage
+      run: npm run test:coverage
+      env:
+        NODE_ENV: test
+        QDRANT_HOST: localhost
+        QDRANT_PORT: 6333
+    
+    - name: Run performance tests
+      run: npm run test:performance
+      continue-on-error: true
+      env:
+        NODE_ENV: test
+    
+    - name: Generate performance report
+      run: npm run performance:report
+      continue-on-error: true
+    
+    - name: Generate consolidated coverage report
+      run: node scripts/coverage-report.js
+      continue-on-error: true
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage/lcov.info
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+    
+    - name: Upload coverage reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: coverage-reports
+        path: |
+          coverage/
+          coverage-report/
+          performance-reports/
+        retention-days: 30
+    
+    - name: Comment coverage on PR
+      if: github.event_name == 'pull_request'
+      uses: romeovs/lcov-reporter-action@v0.3.1
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        lcov-file: ./coverage/lcov.info
+        delete-old-comments: true
+    
+    - name: Coverage Summary
+      if: always()
+      run: |
+        echo "## 📊 Coverage Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [ -f coverage/coverage-summary.json ]; then
+          node -e "
+            const fs = require('fs');
+            const summary = JSON.parse(fs.readFileSync('coverage/coverage-summary.json', 'utf8'));
+            const total = summary.total;
+            
+            console.log('| Metric | Coverage | Status |');
+            console.log('|--------|----------|--------|');
+            console.log('| Statements | ' + total.statements.pct + '% | ' + (total.statements.pct >= 90 ? '✅' : '❌') + ' |');
+            console.log('| Branches | ' + total.branches.pct + '% | ' + (total.branches.pct >= 85 ? '✅' : '❌') + ' |');
+            console.log('| Functions | ' + total.functions.pct + '% | ' + (total.functions.pct >= 90 ? '✅' : '❌') + ' |');
+            console.log('| Lines | ' + total.lines.pct + '% | ' + (total.lines.pct >= 90 ? '✅' : '❌') + ' |');
+          " >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ Coverage summary not found" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "📁 **Reports Available:**" >> $GITHUB_STEP_SUMMARY
+        echo "- [Coverage Report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+        echo "- [Performance Report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+    
+    - name: Fail if coverage below threshold
+      run: |
+        if [ -f coverage/coverage-summary.json ]; then
+          node -e "
+            const fs = require('fs');
+            const summary = JSON.parse(fs.readFileSync('coverage/coverage-summary.json', 'utf8'));
+            const total = summary.total;
+            
+            const thresholds = {
+              statements: 90,
+              branches: 85,
+              functions: 90,
+              lines: 90
+            };
+            
+            let failed = false;
+            Object.entries(thresholds).forEach(([metric, threshold]) => {
+              if (total[metric].pct < threshold) {
+                console.log('❌ ' + metric + ' coverage (' + total[metric].pct + '%) below threshold (' + threshold + '%)');
+                failed = true;
+              } else {
+                console.log('✅ ' + metric + ' coverage (' + total[metric].pct + '%) meets threshold (' + threshold + '%)');
+              }
+            });
+            
+            if (failed) {
+              console.log('\\n❌ Coverage thresholds not met');
+              process.exit(1);
+            } else {
+              console.log('\\n✅ All coverage thresholds met');
+            }
+          "
+        else
+          echo "❌ Coverage summary not found"
+          exit 1
+        fi
+
+  deploy-reports:
+    name: Deploy Reports to GitHub Pages
+    runs-on: ubuntu-latest
+    needs: coverage-report
+    if: github.ref == 'refs/heads/main'
+    
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
+    steps:
+    - name: Download coverage reports
+      uses: actions/download-artifact@v3
+      with:
+        name: coverage-reports
+        path: ./reports
+    
+    - name: Setup Pages
+      uses: actions/configure-pages@v3
+    
+    - name: Create index page
+      run: |
+        mkdir -p ./public
+        cat > ./public/index.html << 'EOF'
+        <!DOCTYPE html>
+        <html lang="pt-BR">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>VeritasAI - Relatórios</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+            .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }
+            .header { text-align: center; margin-bottom: 30px; }
+            .links { display: grid; gap: 15px; }
+            .link { display: block; padding: 15px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; text-align: center; }
+            .link:hover { background: #0056b3; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>📊 VeritasAI - Relatórios</h1>
+              <p>Relatórios automatizados de coverage e performance</p>
+            </div>
+            <div class="links">
+              <a href="./coverage/index.html" class="link">📊 Relatório de Coverage</a>
+              <a href="./coverage-report/index.html" class="link">📋 Relatório Consolidado</a>
+              <a href="./performance-reports/performance-report.html" class="link">⚡ Relatório de Performance</a>
+            </div>
+          </div>
+        </body>
+        </html>
+        EOF
+        
+        # Copiar relatórios
+        cp -r ./reports/* ./public/ 2>/dev/null || true
+    
+    - name: Upload to GitHub Pages
+      uses: actions/upload-pages-artifact@v2
+      with:
+        path: ./public
+    
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v2

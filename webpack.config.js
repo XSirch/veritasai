@@ -2,7 +2,6 @@ const path = require('path');
 const webpack = require('webpack');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
-const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 module.exports = (env, argv) => {
   const isProduction = argv.mode === 'production';
@@ -18,7 +17,19 @@ module.exports = (env, argv) => {
     output: {
       path: path.resolve(__dirname, 'dist'),
       filename: '[name]/[name].js',
-      clean: true
+      publicPath: '',
+      clean: true,
+      // Configurações específicas para extensões
+      globalObject: 'this',
+      environment: {
+        arrowFunction: false,
+        bigIntLiteral: false,
+        const: false,
+        destructuring: false,
+        dynamicImport: false,
+        forOf: false,
+        module: false
+      }
     },
     
     module: {
@@ -71,20 +82,24 @@ module.exports = (env, argv) => {
           {
             from: 'src/assets',
             to: 'assets'
+          },
+          {
+            from: 'src/popup/popup.css',
+            to: 'popup/popup.css'
+          },
+          {
+            from: 'src/options/options.css',
+            to: 'options/options.css'
+          },
+          {
+            from: 'src/popup/popup.html',
+            to: 'popup/popup.html'
+          },
+          {
+            from: 'src/options/options.html',
+            to: 'options/options.html'
           }
         ]
-      }),
-      
-      new HtmlWebpackPlugin({
-        template: './src/popup/popup.html',
-        filename: 'popup/popup.html',
-        chunks: ['popup']
-      }),
-      
-      new HtmlWebpackPlugin({
-        template: './src/options/options.html',
-        filename: 'options/options.html',
-        chunks: ['options']
       })
     ],
     
@@ -105,10 +120,25 @@ module.exports = (env, argv) => {
             chunks: 'all'
           }
         }
-      }
+      },
+      // Evitar eval() para compatibilidade com CSP
+      minimizer: isProduction ? [
+        new (require('terser-webpack-plugin'))({
+          terserOptions: {
+            mangle: false,
+            compress: {
+              drop_console: false,
+              drop_debugger: false
+            },
+            format: {
+              comments: false
+            }
+          }
+        })
+      ] : []
     },
     
-    devtool: isProduction ? false : 'cheap-module-source-map',
+    devtool: isProduction ? false : 'source-map',
     
     watch: !isProduction,
     watchOptions: {

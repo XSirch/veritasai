@@ -4,6 +4,7 @@
  */
 
 import { test, expect } from '@playwright/test';
+import path from 'path';
 
 test.describe('VeritasAI Extension - Fluxos Básicos', () => {
   
@@ -183,15 +184,48 @@ test.describe('VeritasAI Extension - Fluxos Básicos', () => {
     expect(newState).toBe(!currentState);
   });
   
-  test('deve injetar content script em páginas web', async ({ page }) => {
-    // Navegar para uma página de teste
-    await page.goto('https://example.com');
-    
+  test('deve injetar content script em páginas web', async ({ page, context }) => {
+    // Capturar logs do console
+    const consoleLogs = [];
+    page.on('console', msg => {
+      consoleLogs.push(`${msg.type()}: ${msg.text()}`);
+    });
+
+    // Navegar para uma página de teste simples
+    // Usar httpbin.org que é uma página HTTP real
+    await page.goto('https://httpbin.org/html');
+
     // Aguardar carregamento do content script
-    await page.waitForTimeout(2000);
-    
+    await page.waitForTimeout(3000);
+
+    // Exibir logs do console para debug
+    console.log('📋 Console logs:', consoleLogs);
+
+    // Verificar se a extensão está carregada no contexto
+    const extensionPages = context.pages().filter(page => page.url().startsWith('chrome-extension://'));
+    console.log('🔌 Páginas de extensão encontradas:', extensionPages.length);
+
+    // Verificar se há erros na página
+    const pageErrors = [];
+    page.on('pageerror', error => {
+      pageErrors.push(error.message);
+    });
+    console.log('❌ Erros na página:', pageErrors);
+
+    // Verificar se VeritasAI foi exposto globalmente
+    const veritasAI = await page.evaluate(() => {
+      return typeof window.VeritasAI !== 'undefined';
+    });
+    expect(veritasAI).toBe(true);
+
+    // Verificar se ResultTooltip está disponível
+    const resultTooltip = await page.evaluate(() => {
+      return typeof window.ResultTooltip !== 'undefined';
+    });
+    expect(resultTooltip).toBe(true);
+
     // Verificar se os estilos foram injetados
-    const styles = await page.locator('#veritas-styles').count();
+    const styles = await page.locator('#veritas-ai-styles').count();
     expect(styles).toBeGreaterThan(0);
     
     // Simular seleção de texto

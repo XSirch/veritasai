@@ -1,12 +1,17 @@
 /**
  * KeywordExtractor - Sistema de extração de palavras-chave para VeritasAI
  * Utiliza compromise.js para processamento de linguagem natural
+ * VER-024: Otimizado para uso eficiente de memória
  */
 
-const nlp = require('compromise');
-const numbers = require('compromise-numbers');
-const dates = require('compromise-dates');
-const stopword = require('stopword');
+// Lazy loading dos módulos NLP para economizar memória
+let nlp = null;
+let numbers = null;
+let dates = null;
+let stopword = null;
+
+// Importar memory optimizer
+const { getMemoryOptimizer, optimizeMemory } = require('./memory-optimizer.js');
 
 // Registrar plugins do compromise
 nlp.plugin(numbers);
@@ -35,10 +40,48 @@ class KeywordExtractor {
       'então', 'assim', 'logo', 'pois', 'porque', 'como',
       'quando', 'onde', 'quanto', 'qual', 'quem', 'que'
     ];
+
+    // VER-024: Otimizações de memória
+    this.cache = new Map();
+    this.maxCacheSize = options.maxCacheSize || 50; // Reduzido para economizar memória
+    this.memoryOptimizer = null;
+
+    if (options.enableMemoryOptimization !== false) {
+      try {
+        this.memoryOptimizer = getMemoryOptimizer();
+      } catch (error) {
+        console.warn('⚠️ Memory optimizer não disponível:', error.message);
+      }
+    }
+
+    // Lazy loading dos módulos NLP
+    this._initLazyModules();
+  }
+
+  /**
+   * VER-024: Inicialização lazy dos módulos NLP
+   */
+  _initLazyModules() {
+    // Carregar módulos apenas quando necessário
+    if (!nlp) {
+      nlp = require('compromise');
+    }
+    if (!numbers) {
+      numbers = require('compromise-numbers');
+      nlp.plugin(numbers);
+    }
+    if (!dates) {
+      dates = require('compromise-dates');
+      nlp.plugin(dates);
+    }
+    if (!stopword) {
+      stopword = require('stopword');
+    }
   }
   
   /**
    * Extrai palavras-chave de um texto
+   * VER-024: Otimizado para uso eficiente de memória
    * @param {string} text - Texto para análise
    * @returns {Object} Resultado da extração
    */
@@ -46,14 +89,23 @@ class KeywordExtractor {
     if (!text || typeof text !== 'string') {
       throw new Error('Texto deve ser uma string não vazia');
     }
-    
+
+    // Verificar cache primeiro
+    const cacheKey = this._generateCacheKey(text);
+    if (this.cache.has(cacheKey)) {
+      return this.cache.get(cacheKey);
+    }
+
     const startTime = Date.now();
-    
+
     try {
+      // Garantir que módulos estão carregados
+      this._initLazyModules();
+
       // Processar texto com compromise
       const doc = nlp(text);
-      
-      // Extrair diferentes tipos de informação
+
+      // Extrair diferentes tipos de informação de forma otimizada
       const result = {
         keywords: this._extractKeywords(doc),
         entities: this._extractEntities(doc),
@@ -66,12 +118,23 @@ class KeywordExtractor {
         textLength: text.length,
         wordCount: doc.wordCount()
       };
-      
+
       // Combinar e ranquear todas as palavras-chave
       result.combinedKeywords = this._combineAndRank(result);
-      
+
+      // Otimizar resultado para economizar memória
+      this._optimizeResult(result);
+
+      // Armazenar no cache com limite de tamanho
+      this._cacheResult(cacheKey, result);
+
+      // Verificar uso de memória se optimizer disponível
+      if (this.memoryOptimizer) {
+        this.memoryOptimizer.checkMemoryUsage();
+      }
+
       return result;
-      
+
     } catch (error) {
       throw new Error(`Erro na extração de palavras-chave: ${error.message}`);
     }
@@ -1101,6 +1164,95 @@ class KeywordExtractor {
       positiveSignals: indicators.positive.length,
       negativeSignals: indicators.negative.length
     };
+  }
+
+  /**
+   * VER-024: Métodos de otimização de memória
+   */
+
+  /**
+   * Gera chave de cache para o texto
+   */
+  _generateCacheKey(text) {
+    // Usar hash simples para economizar memória
+    let hash = 0;
+    for (let i = 0; i < text.length; i++) {
+      const char = text.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    return hash.toString(36);
+  }
+
+  /**
+   * Armazena resultado no cache com limite de tamanho
+   */
+  _cacheResult(key, result) {
+    // Verificar limite do cache
+    if (this.cache.size >= this.maxCacheSize) {
+      // Remover entrada mais antiga (FIFO)
+      const firstKey = this.cache.keys().next().value;
+      this.cache.delete(firstKey);
+    }
+
+    this.cache.set(key, result);
+  }
+
+  /**
+   * Otimiza resultado para economizar memória
+   */
+  _optimizeResult(result) {
+    // Limitar número de keywords
+    if (result.keywords && result.keywords.length > this.options.maxKeywords) {
+      result.keywords = result.keywords.slice(0, this.options.maxKeywords);
+    }
+
+    // Limitar número de entities
+    if (result.entities && result.entities.length > 20) {
+      result.entities = result.entities.slice(0, 20);
+    }
+
+    // Limitar números e datas
+    if (result.numbers && result.numbers.length > 10) {
+      result.numbers = result.numbers.slice(0, 10);
+    }
+
+    if (result.dates && result.dates.length > 10) {
+      result.dates = result.dates.slice(0, 10);
+    }
+
+    // Remover propriedades desnecessárias para economizar memória
+    if (result.combinedKeywords && result.combinedKeywords.length > this.options.maxKeywords) {
+      result.combinedKeywords = result.combinedKeywords.slice(0, this.options.maxKeywords);
+    }
+  }
+
+  /**
+   * Limpa cache para liberar memória
+   */
+  clearCache() {
+    this.cache.clear();
+
+    if (this.memoryOptimizer) {
+      this.memoryOptimizer.forceGC();
+    }
+  }
+
+  /**
+   * Obtém estatísticas de uso de memória
+   */
+  getMemoryStats() {
+    const stats = {
+      cacheSize: this.cache.size,
+      maxCacheSize: this.maxCacheSize,
+      cacheUtilization: (this.cache.size / this.maxCacheSize * 100).toFixed(1) + '%'
+    };
+
+    if (this.memoryOptimizer) {
+      Object.assign(stats, this.memoryOptimizer.getMemoryStats());
+    }
+
+    return stats;
   }
 }
 

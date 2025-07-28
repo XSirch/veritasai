@@ -1,14 +1,30 @@
 /**
  * Jest Configuration for VeritasAI Extension
  * Configuração para testes unitários e de integração
+ * VER-024: Configuração robusta com suporte completo a Jest globais
  */
 
 module.exports = {
   // Ambiente de teste
   testEnvironment: 'jsdom',
-  
+
   // Arquivos de setup
   setupFilesAfterEnv: ['<rootDir>/tests/setup.js'],
+
+  // Transformações
+  transform: {
+    '^.+\\.js$': 'babel-jest'
+  },
+
+  // Ignorar transformações para alguns módulos
+  transformIgnorePatterns: [
+    'node_modules/(?!(compromise|compromise-numbers|compromise-dates)/)'
+  ],
+
+  // Mapeamento de módulos
+  moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/src/$1'
+  },
   
   // Padrões de arquivos de teste
   testMatch: [
@@ -26,20 +42,8 @@ module.exports = {
     '<rootDir>/tests/python/'
   ],
   
-  // Transformações
-  transform: {
-    '^.+\\.js$': 'babel-jest'
-  },
-  
   // Extensões de arquivo
   moduleFileExtensions: ['js', 'json'],
-  
-
-  
-  // Arquivos a serem ignorados na transformação
-  transformIgnorePatterns: [
-    'node_modules/(?!(chrome-extension-async|webextension-polyfill)/)'
-  ],
   
   // Coverage configuration
   collectCoverage: true,
@@ -49,16 +53,18 @@ module.exports = {
     '!src/**/__tests__/**',
     '!src/assets/**',
     '!**/node_modules/**',
-    '!**/dist/**'
+    '!**/dist/**',
+    '!src/content/content.js' // Arquivo com encoding issues
   ],
   
-  // Coverage thresholds (baixos para testes iniciais)
+  // Coverage thresholds (apenas para arquivos específicos testados)
   coverageThreshold: {
-    global: {
-      branches: 0,
-      functions: 0,
-      lines: 0,
-      statements: 0
+    // Thresholds específicos para arquivos testados
+    './src/utils/performance-monitor.js': {
+      branches: 60,
+      functions: 65,
+      lines: 70,
+      statements: 70
     }
   },
   
@@ -78,7 +84,12 @@ module.exports = {
   globals: {
     'chrome': true,
     'browser': true,
-    'testUtils': true
+    'testUtils': true,
+    'testHelpers': true,
+    'setupCompromise': true,
+    'performance': true,
+    'WeakRef': true,
+    'PerformanceObserver': true
   },
   
   // Verbose output
@@ -164,8 +175,8 @@ module.exports = {
   // Bail on first failure in CI
   bail: process.env.CI ? 1 : 0,
   
-  // Force exit
-  forceExit: false,
+  // Force exit para evitar memory leaks
+  forceExit: true,
   
   // Detect open handles
   detectOpenHandles: true,

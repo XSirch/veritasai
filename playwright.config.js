@@ -26,7 +26,7 @@ export default defineConfig({
   
   // Reporter
   reporter: [
-    ['html', { outputFolder: 'test-results/html-report' }],
+    ['html', { outputFolder: 'playwright-report' }],
     ['json', { outputFile: 'test-results/results.json' }],
     ['junit', { outputFile: 'test-results/junit.xml' }],
     ['line']
@@ -171,41 +171,9 @@ export default defineConfig({
   // Configuração de fixtures
   testIdAttribute: 'data-testid',
   
-  // Configuração de network
-  use: {
-    ...devices['Desktop Chrome'].use,
-    
-    // Interceptar requests
-    extraHTTPHeaders: {
-      'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8'
-    },
-    
-    // Configuração de proxy (se necessário)
-    // proxy: {
-    //   server: 'http://localhost:8080'
-    // },
-    
-    // Configuração de storage state (para login persistente)
-    // storageState: 'tests/e2e/auth.json'
-  },
+
   
-  // Configuração de expect
-  expect: {
-    // Timeout para expects
-    timeout: 5000,
-    
-    // Configuração de screenshots
-    toHaveScreenshot: {
-      mode: 'css',
-      animations: 'disabled'
-    },
-    
-    // Configuração de comparação visual
-    toMatchSnapshot: {
-      threshold: 0.2,
-      maxDiffPixels: 100
-    }
-  },
+
   
   // Configuração de test info
   testInfo: {

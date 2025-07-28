@@ -2,28 +2,48 @@
  * UIManager - Módulo para gerenciamento de interface do usuário
  */
 
+import { ResultTooltip } from '../ui-components.js';
+
 export class UIManager {
   constructor(config, state) {
     this.config = config;
     this.state = state;
     this.autoHideTimer = null;
     this.observers = [];
-    
+    this.resultTooltip = null;
+
     this.setupIntersectionObserver();
+    this.loadTooltipStyles();
   }
   
+  /**
+   * Carrega estilos do tooltip
+   */
+  loadTooltipStyles() {
+    if (document.getElementById('veritas-tooltip-styles')) return;
+
+    const link = document.createElement('link');
+    link.id = 'veritas-tooltip-styles';
+    link.rel = 'stylesheet';
+    link.href = chrome.runtime.getURL('assets/styles/tooltip.css');
+    document.head.appendChild(link);
+  }
+
   /**
    * Configura intersection observer para otimizar performance
    */
   setupIntersectionObserver() {
     const observer = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
-        if (!entry.isIntersecting && entry.target.id === 'veritas-tooltip') {
+        if (!entry.isIntersecting && (
+          entry.target.id === 'veritas-tooltip' ||
+          entry.target.id === 'veritas-result-tooltip'
+        )) {
           this.scheduleAutoHide();
         }
       });
     });
-    
+
     this.observers.push(observer);
   }
   
@@ -137,20 +157,26 @@ export class UIManager {
   }
   
   /**
-   * Mostra tooltip de resultado
+   * Mostra tooltip de resultado avançado
    */
   showResultTooltip(result, selectionData) {
-    const tooltip = this.createResultTooltip(result, selectionData);
-    this.positionElement(tooltip, selectionData.position);
-    
-    document.body.appendChild(tooltip);
+    this.hideAllElements();
+
+    // Criar novo tooltip avançado
+    this.resultTooltip = new ResultTooltip({
+      maxWidth: 400,
+      minWidth: 280,
+      animationDuration: this.config.TOOLTIP_DELAY || 200,
+      autoHideDelay: this.config.AUTO_HIDE_DELAY || 8000,
+      zIndex: this.config.Z_INDEX_BASE + 1
+    });
+
+    const tooltip = this.resultTooltip.create(result, selectionData, selectionData.position);
     this.state.currentTooltip = tooltip;
-    
-    // Adicionar animação de entrada
-    setTimeout(() => {
-      tooltip.classList.add('veritas-tooltip-visible');
-    }, 10);
-    
+
+    // Configurar event listener para ações do tooltip
+    document.addEventListener('veritasTooltipAction', this.handleTooltipAction.bind(this));
+
     if (this.observers[0]) {
       this.observers[0].observe(tooltip);
     }
@@ -273,13 +299,43 @@ export class UIManager {
   }
   
   /**
+   * Manipula ações do tooltip
+   */
+  handleTooltipAction(event) {
+    const { action } = event.detail;
+
+    switch (action) {
+      case 'details':
+        this.onShowDetails();
+        break;
+      case 'report':
+        this.onGenerateReport();
+        break;
+      case 'share':
+        this.onShareResult();
+        break;
+      case 'feedback':
+        this.onSendFeedback();
+        break;
+    }
+  }
+
+  /**
    * Esconde tooltip
    */
   hideTooltip() {
+    if (this.resultTooltip) {
+      this.resultTooltip.destroy();
+      this.resultTooltip = null;
+    }
+
     if (this.state.currentTooltip) {
       this.state.currentTooltip.remove();
       this.state.currentTooltip = null;
     }
+
+    // Remover event listener
+    document.removeEventListener('veritasTooltipAction', this.handleTooltipAction.bind(this));
   }
   
   /**
@@ -319,6 +375,15 @@ export class UIManager {
     this.hideAllElements();
     this.observers.forEach(observer => observer.disconnect());
     this.observers = [];
+
+    // Remover estilos injetados
+    const styles = document.getElementById('veritas-tooltip-styles');
+    if (styles) {
+      styles.remove();
+    }
+
+    // Remover event listeners
+    document.removeEventListener('veritasTooltipAction', this.handleTooltipAction.bind(this));
   }
   
   // Métodos auxiliares que serão implementados pelos handlers
@@ -426,4 +491,5 @@ export class UIManager {
   onShowDetails(result, selectionData) {}
   onGenerateReport(result, selectionData) {}
   onShareResult(result, selectionData) {}
+  onSendFeedback(result, selectionData) {}
 }

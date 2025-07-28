@@ -30,16 +30,23 @@ document.addEventListener('DOMContentLoaded', async () => {
  */
 async function loadSettings() {
   return new Promise((resolve, reject) => {
-    chrome.runtime.sendMessage({ action: 'getSettings' }, (response) => {
+    console.log('📋 Carregando configurações...');
+
+    chrome.runtime.sendMessage({ action: 'getConfiguration' }, (response) => {
       if (chrome.runtime.lastError) {
+        console.error('❌ Erro de runtime:', chrome.runtime.lastError);
         reject(chrome.runtime.lastError);
         return;
       }
-      
+
+      console.log('📥 Resposta recebida:', response);
+
       if (response && response.success) {
         currentSettings = response.data || {};
+        console.log('✅ Configurações carregadas:', currentSettings);
         resolve();
       } else {
+        console.error('❌ Falha na resposta:', response);
         reject(new Error('Falha ao carregar configurações'));
       }
     });
@@ -152,23 +159,23 @@ function updateUI() {
   // API Keys
   const googleApiKey = document.getElementById('google-api-key');
   if (googleApiKey) {
-    googleApiKey.value = currentSettings.apiKeys?.googleFactCheck || '';
+    googleApiKey.value = currentSettings.googleApiKey || '';
   }
-  
+
   const groqApiKey = document.getElementById('groq-api-key');
   if (groqApiKey) {
-    groqApiKey.value = currentSettings.apiKeys?.groq || '';
+    groqApiKey.value = currentSettings.groqApiKey || '';
   }
   
   // Cache
   const cacheEnabled = document.getElementById('cache-enabled');
   if (cacheEnabled) {
-    cacheEnabled.checked = currentSettings.cache?.enabled ?? true;
+    cacheEnabled.checked = currentSettings.cacheEnabled !== false;
   }
-  
+
   const cacheTtl = document.getElementById('cache-ttl');
   if (cacheTtl) {
-    const ttlDays = (currentSettings.cache?.ttl || 30 * 24 * 60 * 60 * 1000) / (24 * 60 * 60 * 1000);
+    const ttlDays = (currentSettings.cacheExpiration || 30 * 24 * 60 * 60 * 1000) / (24 * 60 * 60 * 1000);
     cacheTtl.value = ttlDays;
   }
 }
@@ -202,12 +209,8 @@ async function handleApiSubmit(event) {
   
   const formData = new FormData(event.target);
   
-  if (!currentSettings.apiKeys) {
-    currentSettings.apiKeys = {};
-  }
-  
-  currentSettings.apiKeys.googleFactCheck = formData.get('google-api-key') || '';
-  currentSettings.apiKeys.groq = formData.get('groq-api-key') || '';
+  currentSettings.googleApiKey = formData.get('google-api-key') || '';
+  currentSettings.groqApiKey = formData.get('groq-api-key') || '';
   
   try {
     await saveSettings();
@@ -226,13 +229,9 @@ async function handleCacheSubmit(event) {
   
   const formData = new FormData(event.target);
   
-  if (!currentSettings.cache) {
-    currentSettings.cache = {};
-  }
-  
-  currentSettings.cache.enabled = formData.has('cache-enabled');
+  currentSettings.cacheEnabled = formData.has('cache-enabled');
   const ttlDays = parseInt(formData.get('cache-ttl')) || 30;
-  currentSettings.cache.ttl = ttlDays * 24 * 60 * 60 * 1000;
+  currentSettings.cacheExpiration = ttlDays * 24 * 60 * 60 * 1000;
   
   try {
     await saveSettings();
@@ -336,19 +335,21 @@ async function resetSettings() {
   }
   
   try {
-    // Configurações padrão
+    // Configurações padrão (formato compatível com background)
     currentSettings = {
-      enabled: true,
-      autoCheck: true,
-      showTooltips: true,
-      apiKeys: {
-        googleFactCheck: '',
-        groq: ''
-      },
-      cache: {
-        enabled: true,
-        ttl: 30 * 24 * 60 * 60 * 1000
-      }
+      googleApiKey: '',
+      groqApiKey: '',
+      language: 'pt-BR',
+      theme: 'auto',
+      notificationsEnabled: true,
+      soundEnabled: false,
+      autoVerify: false,
+      cacheEnabled: true,
+      apiTimeout: 30,
+      maxTextLength: 5000,
+      debugMode: false,
+      verboseLogging: false,
+      cacheExpiration: 30 * 24 * 60 * 60 * 1000
     };
     
     await saveSettings();
@@ -408,18 +409,25 @@ function importSettings(event) {
  */
 async function saveSettings() {
   return new Promise((resolve, reject) => {
+    console.log('💾 Salvando configurações:', currentSettings);
+
     chrome.runtime.sendMessage({
-      action: 'updateSettings',
-      data: currentSettings
+      action: 'saveConfiguration',
+      config: currentSettings
     }, (response) => {
       if (chrome.runtime.lastError) {
+        console.error('❌ Erro de runtime:', chrome.runtime.lastError);
         reject(chrome.runtime.lastError);
         return;
       }
-      
+
+      console.log('📥 Resposta do salvamento:', response);
+
       if (response && response.success) {
+        console.log('✅ Configurações salvas com sucesso');
         resolve();
       } else {
+        console.error('❌ Falha no salvamento:', response);
         reject(new Error('Falha ao salvar configurações'));
       }
     });

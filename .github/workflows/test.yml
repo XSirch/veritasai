@@ -69,7 +69,17 @@ jobs:
         NODE_ENV: test
         QDRANT_HOST: localhost
         QDRANT_PORT: 6333
-        
+
+    - name: Generate performance report
+      run: npm run test:performance
+      continue-on-error: true
+      env:
+        NODE_ENV: test
+
+    - name: Generate consolidated coverage report
+      run: node scripts/coverage-report.js
+      continue-on-error: true
+
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
       with:
@@ -86,6 +96,8 @@ jobs:
         path: |
           coverage/
           test-results.xml
+          performance-reports/
+          coverage-report/
           
     - name: Comment coverage on PR
       if: github.event_name == 'pull_request'

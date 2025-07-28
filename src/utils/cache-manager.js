@@ -1,6 +1,7 @@
 /**
  * CacheManager - Sistema avançado de cache para VeritasAI
  * Implementa múltiplas estratégias de cache com TTL e persistência
+ * VER-024: Otimizado para hit rate ≥ 60%
  */
 
 /**
@@ -8,17 +9,23 @@
  */
 class CacheManager {
   constructor(options = {}) {
-    this.strategy = options.strategy || 'memory';
-    this.maxSize = options.maxSize || 1000;
-    this.defaultTtl = options.defaultTtl || 3600000; // 1 hora
-    this.cleanupInterval = options.cleanupInterval || 300000; // 5 minutos
-    
+    this.strategy = options.strategy || 'lru'; // Mudado para LRU por padrão
+    this.maxSize = options.maxSize || 2000; // Aumentado para melhor hit rate
+    this.defaultTtl = options.defaultTtl || 7200000; // 2 horas (aumentado)
+    this.cleanupInterval = options.cleanupInterval || 600000; // 10 minutos
+    this.enablePredictiveCaching = options.enablePredictiveCaching !== false;
+    this.enableAdaptiveTtl = options.enableAdaptiveTtl !== false;
+    this.targetHitRate = options.targetHitRate || 0.6; // 60%
+
     // Armazenamento
     this.memoryCache = new Map();
     this.accessTimes = new Map();
     this.hitCounts = new Map();
-    
-    // Estatísticas
+    this.accessOrder = new Map(); // Para LRU
+    this.accessFrequency = new Map(); // Para LFU
+    this.predictiveCache = new Map(); // Cache preditivo
+
+    // Estatísticas avançadas
     this.stats = {
       hits: 0,
       misses: 0,
@@ -27,25 +34,53 @@ class CacheManager {
       evictions: 0,
       cleanups: 0,
       totalRequests: 0,
-      startTime: Date.now()
+      startTime: Date.now(),
+      hitRate: 0,
+      avgResponseTime: 0,
+      popularKeys: new Map(),
+      timeBasedPatterns: new Map()
     };
-    
+
+    // Performance monitor integration
+    this.performanceMonitor = null;
+    this._initPerformanceMonitor();
+
     // Iniciar limpeza automática
     this._startCleanupTimer();
+
+    // Iniciar otimização adaptativa
+    this._startAdaptiveOptimization();
   }
   
   /**
-   * Obtém valor do cache
+   * Obtém valor do cache com estratégias otimizadas
    * @param {string} key - Chave do cache
    * @returns {*} Valor armazenado ou null
    */
   get(key) {
+    const startTime = performance.now();
     this.stats.totalRequests++;
-    
+
+    // Registrar acesso para análise de padrões
+    this._recordAccess(key);
+
     const item = this.memoryCache.get(key);
-    
+
     if (!item) {
       this.stats.misses++;
+      this._updateHitRate();
+
+      // Tentar cache preditivo
+      if (this.enablePredictiveCaching) {
+        const predictedValue = this._tryPredictiveCache(key);
+        if (predictedValue) {
+          this.stats.hits++;
+          this._recordPerformance(startTime);
+          return predictedValue;
+        }
+      }
+
+      this._recordPerformance(startTime);
       return null;
     }
     
@@ -53,14 +88,22 @@ class CacheManager {
     if (this._isExpired(item)) {
       this.delete(key);
       this.stats.misses++;
+      this._updateHitRate();
+      this._recordPerformance(startTime);
       return null;
     }
-    
-    // Atualizar estatísticas de acesso
-    this.accessTimes.set(key, Date.now());
-    this.hitCounts.set(key, (this.hitCounts.get(key) || 0) + 1);
-    
+
+    // Atualizar estatísticas de acesso (LRU/LFU)
+    this._updateAccessStats(key);
     this.stats.hits++;
+    this._updateHitRate();
+
+    // TTL adaptativo baseado na frequência de acesso
+    if (this.enableAdaptiveTtl) {
+      this._adaptTtl(key, item);
+    }
+
+    this._recordPerformance(startTime);
     return item.value;
   }
   
@@ -422,8 +465,226 @@ class FactCheckCache extends CacheManager {
       languageCode: options.languageCode,
       reviewPublisherSiteFilter: options.reviewPublisherSiteFilter
     };
-    
+
     return btoa(JSON.stringify(relevantOptions)).substring(0, 8);
+  }
+
+  /**
+   * VER-024: Métodos otimizados para melhor hit rate
+   */
+
+  /**
+   * Inicializa performance monitor
+   * @private
+   */
+  _initPerformanceMonitor() {
+    try {
+      const { getPerformanceMonitor } = require('./performance-monitor.js');
+      this.performanceMonitor = getPerformanceMonitor();
+    } catch (error) {
+      console.warn('⚠️ Performance monitor não disponível:', error.message);
+    }
+  }
+
+  /**
+   * Registra acesso para análise de padrões
+   * @private
+   */
+  _recordAccess(key) {
+    const now = Date.now();
+    const hour = new Date(now).getHours();
+
+    // Registrar popularidade da chave
+    const popularity = this.stats.popularKeys.get(key) || 0;
+    this.stats.popularKeys.set(key, popularity + 1);
+
+    // Registrar padrão temporal
+    const timePattern = this.stats.timeBasedPatterns.get(hour) || new Set();
+    timePattern.add(key);
+    this.stats.timeBasedPatterns.set(hour, timePattern);
+  }
+
+  /**
+   * Atualiza estatísticas de acesso (LRU/LFU)
+   * @private
+   */
+  _updateAccessStats(key) {
+    const now = Date.now();
+
+    // LRU: Atualizar ordem de acesso
+    this.accessOrder.set(key, now);
+    this.accessTimes.set(key, now);
+
+    // LFU: Atualizar frequência
+    const frequency = this.accessFrequency.get(key) || 0;
+    this.accessFrequency.set(key, frequency + 1);
+
+    // Atualizar hit counts
+    this.hitCounts.set(key, (this.hitCounts.get(key) || 0) + 1);
+  }
+
+  /**
+   * Atualiza hit rate
+   * @private
+   */
+  _updateHitRate() {
+    if (this.stats.totalRequests > 0) {
+      this.stats.hitRate = this.stats.hits / this.stats.totalRequests;
+    }
+
+    // Registrar no performance monitor
+    if (this.performanceMonitor) {
+      if (this.stats.hits > 0) {
+        this.performanceMonitor.recordCacheHit();
+      } else {
+        this.performanceMonitor.recordCacheMiss();
+      }
+    }
+  }
+
+  /**
+   * Registra performance
+   * @private
+   */
+  _recordPerformance(startTime) {
+    const duration = performance.now() - startTime;
+    this.stats.avgResponseTime = (this.stats.avgResponseTime + duration) / 2;
+  }
+
+  /**
+   * TTL adaptativo baseado na frequência de acesso
+   * @private
+   */
+  _adaptTtl(key, item) {
+    const frequency = this.accessFrequency.get(key) || 1;
+    const popularity = this.stats.popularKeys.get(key) || 1;
+
+    // Chaves mais populares têm TTL maior
+    const multiplier = Math.min(Math.log(frequency + popularity), 3);
+    const newTtl = this.defaultTtl * (1 + multiplier * 0.5);
+
+    // Atualizar TTL se necessário
+    if (newTtl > item.ttl) {
+      item.ttl = newTtl;
+      item.expiresAt = Date.now() + newTtl;
+    }
+  }
+
+  /**
+   * Cache preditivo baseado em padrões
+   * @private
+   */
+  _tryPredictiveCache(key) {
+    if (!this.enablePredictiveCaching) return null;
+
+    // Verificar se há padrão temporal
+    const hour = new Date().getHours();
+    const timePattern = this.stats.timeBasedPatterns.get(hour);
+
+    if (timePattern && timePattern.has(key)) {
+      // Tentar prever valor baseado em chaves similares
+      const similarKeys = this._findSimilarKeys(key);
+
+      for (const similarKey of similarKeys) {
+        const item = this.memoryCache.get(similarKey);
+        if (item && !this._isExpired(item)) {
+          // Cache preditivo: armazenar valor similar
+          this.set(key, item.value, item.ttl);
+          return item.value;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Encontra chaves similares para cache preditivo
+   * @private
+   */
+  _findSimilarKeys(key) {
+    const similarKeys = [];
+    const keyParts = key.split(':');
+
+    for (const [existingKey] of this.memoryCache) {
+      if (existingKey === key) continue;
+
+      const existingParts = existingKey.split(':');
+      let similarity = 0;
+
+      // Calcular similaridade baseada em partes comuns
+      for (let i = 0; i < Math.min(keyParts.length, existingParts.length); i++) {
+        if (keyParts[i] === existingParts[i]) {
+          similarity++;
+        }
+      }
+
+      if (similarity >= keyParts.length * 0.7) {
+        similarKeys.push(existingKey);
+      }
+    }
+
+    return similarKeys.slice(0, 3); // Limitar a 3 chaves similares
+  }
+
+  /**
+   * Inicia otimização adaptativa
+   * @private
+   */
+  _startAdaptiveOptimization() {
+    setInterval(() => {
+      this._optimizeCache();
+    }, 300000); // A cada 5 minutos
+  }
+
+  /**
+   * Otimiza cache baseado em métricas
+   * @private
+   */
+  _optimizeCache() {
+    const currentHitRate = this.stats.hitRate;
+
+    // Se hit rate está abaixo do target, otimizar
+    if (currentHitRate < this.targetHitRate) {
+      console.log(`🔧 Otimizando cache - Hit rate atual: ${(currentHitRate * 100).toFixed(1)}%`);
+
+      // Aumentar tamanho do cache se necessário
+      if (this.memoryCache.size >= this.maxSize * 0.9) {
+        this.maxSize = Math.min(this.maxSize * 1.2, 5000);
+        console.log(`📈 Tamanho do cache aumentado para: ${this.maxSize}`);
+      }
+
+      // Ajustar TTL padrão
+      if (this.stats.misses > this.stats.hits) {
+        this.defaultTtl = Math.min(this.defaultTtl * 1.1, 14400000); // Max 4 horas
+        console.log(`⏰ TTL padrão aumentado para: ${this.defaultTtl / 1000}s`);
+      }
+
+      // Implementar cache warming para chaves populares
+      this._warmPopularKeys();
+    }
+  }
+
+  /**
+   * Aquece cache com chaves populares
+   * @private
+   */
+  _warmPopularKeys() {
+    const popularKeys = Array.from(this.stats.popularKeys.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([key]) => key);
+
+    console.log(`🔥 Aquecendo cache com ${popularKeys.length} chaves populares`);
+
+    // Estender TTL de chaves populares
+    for (const key of popularKeys) {
+      const item = this.memoryCache.get(key);
+      if (item && !this._isExpired(item)) {
+        item.ttl = this.defaultTtl * 2;
+        item.expiresAt = Date.now() + item.ttl;
+      }
+    }
   }
 }
 

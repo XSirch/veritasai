@@ -61,11 +61,17 @@ class GoogleFactCheckService {
   async checkFacts(query, options = {}) {
     return this.errorHandler.withRetry(async () => {
       // Validar entrada
-      this.errorHandler.validate(query, {
-        required: true,
-        type: 'string',
-        minLength: 1
-      }, 'query');
+      if (!query || (typeof query !== 'string' && !Array.isArray(query))) {
+        throw new Error('Query deve ser uma string ou array de strings');
+      }
+
+      if (Array.isArray(query) && query.length === 0) {
+        throw new Error('Array de query não pode estar vazio');
+      }
+
+      if (typeof query === 'string' && query.trim().length === 0) {
+        throw new Error('Query string não pode estar vazia');
+      }
 
       // Normalizar query
       const normalizedQuery = this._normalizeQuery(query);

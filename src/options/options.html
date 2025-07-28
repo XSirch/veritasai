@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>VeritasAI - Configurações</title>
+  <link rel="stylesheet" href="options.css">
   <style>
     * {
       margin: 0;
@@ -232,6 +233,91 @@
       color: #666;
       margin-top: 4px;
     }
+
+    /* Estilos da aba de ajuda */
+    .help-section {
+      margin-bottom: 2rem;
+      padding: 1rem;
+      background: #f8f9fa;
+      border-radius: 8px;
+      border-left: 4px solid #667eea;
+    }
+
+    .help-title {
+      color: #333;
+      margin-bottom: 1rem;
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .help-content h4 {
+      color: #555;
+      margin: 1rem 0 0.5rem 0;
+      font-weight: 500;
+    }
+
+    .help-list {
+      margin: 0.5rem 0;
+      padding-left: 1.5rem;
+    }
+
+    .help-list li {
+      margin-bottom: 0.5rem;
+      line-height: 1.4;
+    }
+
+    .result-examples {
+      display: grid;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .result-item {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.75rem;
+      background: white;
+      border-radius: 6px;
+      border: 1px solid #e0e0e0;
+    }
+
+    .result-badge {
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .result-badge.reliable {
+      background: #4CAF50;
+      color: white;
+    }
+
+    .result-badge.inconclusive {
+      background: #FF9800;
+      color: white;
+    }
+
+    .result-badge.unreliable {
+      background: #F44336;
+      color: white;
+    }
+
+    .result-badge.fake {
+      background: #9C27B0;
+      color: white;
+    }
+
+    .help-content a {
+      color: #667eea;
+      text-decoration: none;
+    }
+
+    .help-content a:hover {
+      text-decoration: underline;
+    }
     
     .stats-grid {
       display: grid;
@@ -272,6 +358,7 @@
       <button class="tab-button" data-tab="api-tab">APIs</button>
       <button class="tab-button" data-tab="cache-tab">Cache</button>
       <button class="tab-button" data-tab="advanced-tab">Avançado</button>
+      <button class="tab-button" data-tab="help-tab">📚 Ajuda</button>
     </div>
 
     <!-- Aba Geral -->
@@ -409,6 +496,135 @@
           <label class="form-label">Reset</label>
           <button type="button" id="reset-btn" class="btn btn-danger">Resetar Todas as Configurações</button>
           <div class="help-text">Restaura todas as configurações para os valores padrão</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Aba Ajuda -->
+    <div id="help-tab" class="tab-content">
+      <div class="section">
+        <h2 class="section-title">📚 Documentação e Ajuda</h2>
+        <p class="section-description">Guia completo para usar o VeritasAI efetivamente.</p>
+
+        <!-- Como Usar -->
+        <div class="help-section">
+          <h3 class="help-title">🚀 Como Usar</h3>
+          <div class="help-content">
+            <ol class="help-list">
+              <li><strong>Selecione texto</strong> em qualquer página web</li>
+              <li><strong>Clique no ícone VeritasAI</strong> que aparece</li>
+              <li><strong>Aguarde a análise</strong> automática</li>
+              <li><strong>Veja o resultado</strong> no tooltip colorido</li>
+            </ol>
+          </div>
+        </div>
+
+        <!-- Configuração de APIs -->
+        <div class="help-section">
+          <h3 class="help-title">🔑 Configuração de APIs</h3>
+          <div class="help-content">
+            <h4>Google Fact Check Tools API</h4>
+            <p>Para verificação primária de fatos:</p>
+            <ol class="help-list">
+              <li>Acesse <a href="https://console.developers.google.com/" target="_blank">Google Cloud Console</a></li>
+              <li>Crie um novo projeto ou selecione existente</li>
+              <li>Ative a "Fact Check Tools API"</li>
+              <li>Crie credenciais (API Key)</li>
+              <li>Cole a API key na aba "APIs"</li>
+            </ol>
+
+            <h4>Groq API</h4>
+            <p>Para análise LLM como fallback:</p>
+            <ol class="help-list">
+              <li>Acesse <a href="https://console.groq.com/" target="_blank">Groq Console</a></li>
+              <li>Crie uma conta gratuita</li>
+              <li>Gere uma nova API key</li>
+              <li>Cole a API key na aba "APIs"</li>
+            </ol>
+          </div>
+        </div>
+
+        <!-- Resultados -->
+        <div class="help-section">
+          <h3 class="help-title">📊 Interpretando Resultados</h3>
+          <div class="help-content">
+            <div class="result-examples">
+              <div class="result-item">
+                <span class="result-badge reliable">✅ CONFIÁVEL</span>
+                <p>Informação verificada e considerada verdadeira</p>
+              </div>
+              <div class="result-item">
+                <span class="result-badge inconclusive">⚠️ INCONCLUSIVO</span>
+                <p>Não foi possível verificar a veracidade</p>
+              </div>
+              <div class="result-item">
+                <span class="result-badge unreliable">❌ SEM FUNDAMENTO</span>
+                <p>Informação identificada como falsa ou enganosa</p>
+              </div>
+              <div class="result-item">
+                <span class="result-badge fake">🚫 FAKE</span>
+                <p>Informação claramente falsa ou fabricada</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Configurações Avançadas -->
+        <div class="help-section">
+          <h3 class="help-title">⚙️ Configurações Avançadas</h3>
+          <div class="help-content">
+            <h4>Cache</h4>
+            <p><strong>Habilitado:</strong> Armazena resultados para respostas mais rápidas</p>
+            <p><strong>TTL:</strong> Tempo que os resultados ficam salvos (1-365 dias)</p>
+
+            <h4>Performance</h4>
+            <p><strong>Timeout:</strong> Tempo limite para APIs (5-120 segundos)</p>
+            <p><strong>Tamanho máximo:</strong> Limite de caracteres para análise</p>
+
+            <h4>Debug</h4>
+            <p><strong>Modo debug:</strong> Logs detalhados no console</p>
+            <p><strong>Logging verboso:</strong> Informações técnicas extras</p>
+          </div>
+        </div>
+
+        <!-- Solução de Problemas -->
+        <div class="help-section">
+          <h3 class="help-title">🔧 Solução de Problemas</h3>
+          <div class="help-content">
+            <h4>Extensão não funciona</h4>
+            <ul class="help-list">
+              <li>Verifique se está habilitada em chrome://extensions/</li>
+              <li>Recarregue a página web</li>
+              <li>Reinicie o navegador</li>
+            </ul>
+
+            <h4>APIs não respondem</h4>
+            <ul class="help-list">
+              <li>Verifique se as API keys estão corretas</li>
+              <li>Teste as APIs na aba "APIs"</li>
+              <li>Verifique sua conexão com internet</li>
+            </ul>
+
+            <h4>Resultados inconsistentes</h4>
+            <ul class="help-list">
+              <li>Limpe o cache na aba "Cache"</li>
+              <li>Verifique se o texto é claro e específico</li>
+              <li>Textos muito curtos podem ser inconclusivos</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Suporte -->
+        <div class="help-section">
+          <h3 class="help-title">💬 Suporte</h3>
+          <div class="help-content">
+            <p>Precisa de ajuda? Entre em contato:</p>
+            <ul class="help-list">
+              <li>📧 Email: suporte@veritasai.com</li>
+              <li>🐛 Issues: <a href="https://github.com/XSirch/veritasai/issues" target="_blank">GitHub Issues</a></li>
+              <li>📖 Docs: <a href="https://github.com/XSirch/veritasai/wiki" target="_blank">Wiki do Projeto</a></li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>

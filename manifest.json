@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "VeritasAI - Verificador de Informações",
-  "version": "1.0.0",
+  "version": "1.0.21",
   "description": "Extensão para verificação automática de confiabilidade de informações usando IA e fact-checking",
   
   "permissions": [
@@ -26,15 +26,16 @@
     "service_worker": "background/background.js",
     "type": "module"
   },
-  
+
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
+      "matches": ["<all_urls>", "file://*/*"],
       "js": [
         "content/content.js"
       ],
       "css": [
-        "assets/styles/content.css"
+        "assets/styles/content.css",
+        "assets/styles/tooltip.css"
       ],
       "run_at": "document_end"
     }
@@ -82,7 +83,8 @@
       "resources": [
         "assets/styles/*.css",
         "assets/icons/*.png",
-        "assets/fonts/*.woff2"
+        "assets/fonts/*.woff2",
+        "background/api-integration.js"
       ],
       "matches": ["<all_urls>"]
     }

@@ -92,30 +92,51 @@ export class EventManager {
    */
   debounceSelectionChange() {
     clearTimeout(this.debounceTimer);
-    this.debounceTimer = setTimeout(() => {
-      this.handleTextSelection();
+    this.debounceTimer = setTimeout(async () => {
+      await this.handleTextSelection();
     }, 300);
   }
   
   /**
    * Manipula seleção de texto
    */
-  handleTextSelection(event) {
+  async handleTextSelection(event) {
     if (!this.state.enabled || this.state.isProcessing) return;
-    
+
     try {
       const selection = window.getSelection();
       const selectedText = this.textDetector.extractSelectedText(selection);
-      
+
       if (this.textDetector.isValidSelection(selectedText, selection)) {
         const selectionData = this.textDetector.analyzeSelection(selection, selectedText);
-        this.uiManager.showVerifyButton(selectionData);
         this.state.lastSelection = selectionData;
-        
+
+        // Verificar se verificação automática está habilitada
+        const autoVerifyEnabled = this.state.settings?.autoVerify ||
+                                 (typeof window !== 'undefined' &&
+                                  window.VeritasAI?.VERITAS_CONFIG?.AUTO_VERIFY);
+
+        console.log('🔍 Texto selecionado:', {
+          text: selectedText.substring(0, 50) + '...',
+          length: selectedText.length,
+          autoVerify: autoVerifyEnabled
+        });
+
+        if (autoVerifyEnabled) {
+          // Verificação automática habilitada - executar imediatamente
+          console.log('⚡ Executando verificação automática...');
+          await this.verifyText(selectionData);
+        } else {
+          // Verificação manual - mostrar botão
+          console.log('👆 Mostrando botão de verificação manual...');
+          this.uiManager.showVerifyButton(selectionData);
+        }
+
         // Track selection event
         this.communicationManager.trackEvent('text_selected', {
           textLength: selectedText.length,
-          contentType: selectionData.contentType
+          contentType: selectionData.contentType,
+          autoVerify: autoVerifyEnabled
         });
       } else {
         this.uiManager.hideAllElements();
@@ -128,7 +149,7 @@ export class EventManager {
   /**
    * Tratamento de eventos de teclado
    */
-  handleKeyDown(event) {
+  async handleKeyDown(event) {
     // Esc para fechar tooltip
     if (event.key === 'Escape') {
       this.uiManager.hideAllElements();
@@ -138,7 +159,7 @@ export class EventManager {
     // Ctrl+V para verificar seleção atual
     if (event.ctrlKey && event.key === 'v' && !event.shiftKey && !event.altKey) {
       event.preventDefault();
-      this.handleTextSelection();
+      await this.handleTextSelection();
       return;
     }
     

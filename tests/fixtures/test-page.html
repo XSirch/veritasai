@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Página de Teste - VeritasAI</title>
+</head>
+<body>
+    <h1>Página de Teste</h1>
+    <p>Esta é uma página de teste para verificar se o VeritasAI está funcionando corretamente.</p>
+    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+    
+    <div id="test-content">
+        <h2>Conteúdo de Teste</h2>
+        <p>Este parágrafo contém informações que podem ser verificadas pelo VeritasAI.</p>
+        <p>O Brasil é o maior país da América do Sul.</p>
+        <p>A capital do Brasil é Brasília.</p>
+    </div>
+    
+    <script>
+        console.log('Página de teste carregada');
+        
+        // Aguardar um pouco e verificar se VeritasAI foi carregado
+        setTimeout(() => {
+            if (window.VeritasAI) {
+                console.log('VeritasAI detectado na página:', window.VeritasAI);
+            } else {
+                console.log('VeritasAI não foi detectado na página');
+            }
+        }, 1000);
+    </script>
+</body>
+</html>

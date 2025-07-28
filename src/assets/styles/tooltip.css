@@ -1,0 +1,493 @@
+/**
+ * VeritasAI - Tooltip Styles
+ * Estilos responsivos para tooltip de resultados com acessibilidade
+ */
+
+/* ===== VARIÁVEIS CSS ===== */
+:root {
+  /* Cores de classificação */
+  --veritas-verified: #4CAF50;
+  --veritas-likely-true: #8BC34A;
+  --veritas-uncertain: #FF9800;
+  --veritas-likely-false: #FF5722;
+  --veritas-disputed: #F44336;
+  --veritas-no-data: #757575;
+  
+  /* Cores base */
+  --veritas-bg-primary: #ffffff;
+  --veritas-bg-secondary: #f8f9fa;
+  --veritas-text-primary: #212529;
+  --veritas-text-secondary: #6c757d;
+  --veritas-border: #dee2e6;
+  --veritas-shadow: rgba(0, 0, 0, 0.15);
+  
+  /* Dimensões */
+  --veritas-border-radius: 12px;
+  --veritas-border-radius-sm: 6px;
+  --veritas-spacing-xs: 4px;
+  --veritas-spacing-sm: 8px;
+  --veritas-spacing-md: 12px;
+  --veritas-spacing-lg: 16px;
+  --veritas-spacing-xl: 24px;
+  
+  /* Animações */
+  --veritas-transition-fast: 150ms ease-out;
+  --veritas-transition-normal: 200ms ease-out;
+  --veritas-transition-slow: 300ms ease-out;
+  
+  /* Typography */
+  --veritas-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  --veritas-font-size-xs: 11px;
+  --veritas-font-size-sm: 12px;
+  --veritas-font-size-base: 14px;
+  --veritas-font-size-lg: 16px;
+  --veritas-font-size-xl: 18px;
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --veritas-bg-primary: #2d2d2d;
+    --veritas-bg-secondary: #404040;
+    --veritas-text-primary: #e0e0e0;
+    --veritas-text-secondary: #a0a0a0;
+    --veritas-border: #555555;
+    --veritas-shadow: rgba(0, 0, 0, 0.3);
+  }
+}
+
+/* ===== CONTAINER PRINCIPAL ===== */
+.veritas-tooltip-container {
+  position: absolute;
+  z-index: 10001;
+  font-family: var(--veritas-font-family);
+  font-size: var(--veritas-font-size-base);
+  line-height: 1.4;
+  color: var(--veritas-text-primary);
+  
+  /* Animação de entrada */
+  opacity: 0;
+  transform: translateY(-8px) scale(0.95);
+  transition: all var(--veritas-transition-normal);
+  pointer-events: none;
+}
+
+.veritas-tooltip-container.veritas-tooltip-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.veritas-tooltip-container.veritas-tooltip-hiding {
+  opacity: 0;
+  transform: translateY(-8px) scale(0.95);
+  pointer-events: none;
+}
+
+/* ===== TOOLTIP PRINCIPAL ===== */
+.veritas-tooltip {
+  background: var(--veritas-bg-primary);
+  border: 1px solid var(--veritas-border);
+  border-radius: var(--veritas-border-radius);
+  box-shadow: 0 8px 32px var(--veritas-shadow);
+  overflow: hidden;
+  max-width: 100%;
+  min-width: 280px;
+  backdrop-filter: blur(10px);
+}
+
+/* Estados por classificação */
+.veritas-classification-verified {
+  border-left: 4px solid var(--veritas-verified);
+}
+
+.veritas-classification-likely_true {
+  border-left: 4px solid var(--veritas-likely-true);
+}
+
+.veritas-classification-uncertain {
+  border-left: 4px solid var(--veritas-uncertain);
+}
+
+.veritas-classification-likely_false {
+  border-left: 4px solid var(--veritas-likely-false);
+}
+
+.veritas-classification-disputed {
+  border-left: 4px solid var(--veritas-disputed);
+}
+
+.veritas-classification-no_data {
+  border-left: 4px solid var(--veritas-no-data);
+}
+
+/* ===== HEADER ===== */
+.veritas-tooltip-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--veritas-spacing-md) var(--veritas-spacing-lg);
+  background: var(--veritas-bg-secondary);
+  border-bottom: 1px solid var(--veritas-border);
+}
+
+.veritas-header-content {
+  display: flex;
+  align-items: center;
+  gap: var(--veritas-spacing-sm);
+}
+
+.veritas-logo {
+  font-size: var(--veritas-font-size-lg);
+  line-height: 1;
+}
+
+.veritas-title {
+  margin: 0;
+  font-size: var(--veritas-font-size-lg);
+  font-weight: 600;
+  color: var(--veritas-text-primary);
+}
+
+.veritas-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--veritas-border-radius-sm);
+  color: var(--veritas-text-secondary);
+  cursor: pointer;
+  font-size: var(--veritas-font-size-lg);
+  line-height: 1;
+  transition: all var(--veritas-transition-fast);
+}
+
+.veritas-close-btn:hover {
+  background: var(--veritas-border);
+  color: var(--veritas-text-primary);
+}
+
+.veritas-close-btn:focus {
+  outline: 2px solid var(--veritas-uncertain);
+  outline-offset: 2px;
+}
+
+/* ===== CONTEÚDO ===== */
+.veritas-tooltip-content {
+  padding: var(--veritas-spacing-lg);
+  display: grid;
+  gap: var(--veritas-spacing-lg);
+}
+
+/* ===== RESULTADO PRINCIPAL ===== */
+.veritas-result-main {
+  display: grid;
+  gap: var(--veritas-spacing-md);
+}
+
+.veritas-classification-badge {
+  display: flex;
+  align-items: center;
+  gap: var(--veritas-spacing-sm);
+  padding: var(--veritas-spacing-sm) var(--veritas-spacing-md);
+  background: color-mix(in srgb, var(--classification-color) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--classification-color) 30%, transparent);
+  border-radius: var(--veritas-border-radius-sm);
+}
+
+.veritas-classification-icon {
+  font-size: var(--veritas-font-size-lg);
+  line-height: 1;
+}
+
+.veritas-classification-text {
+  font-weight: 600;
+  font-size: var(--veritas-font-size-lg);
+  color: var(--classification-color);
+}
+
+/* ===== BARRA DE CONFIANÇA ===== */
+.veritas-confidence-section {
+  display: grid;
+  gap: var(--veritas-spacing-xs);
+}
+
+.veritas-confidence-bar {
+  height: 8px;
+  background: var(--veritas-bg-secondary);
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.veritas-confidence-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width var(--veritas-transition-slow);
+  position: relative;
+}
+
+.veritas-confidence-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.veritas-confidence-text {
+  font-size: var(--veritas-font-size-sm);
+  color: var(--veritas-text-secondary);
+  text-align: center;
+}
+
+/* ===== SEÇÕES ===== */
+.veritas-section-title {
+  margin: 0 0 var(--veritas-spacing-sm) 0;
+  font-size: var(--veritas-font-size-base);
+  font-weight: 600;
+  color: var(--veritas-text-primary);
+}
+
+/* ===== EVIDÊNCIAS ===== */
+.veritas-evidence-section {
+  display: grid;
+  gap: var(--veritas-spacing-sm);
+}
+
+.veritas-evidence-list {
+  display: grid;
+  gap: var(--veritas-spacing-xs);
+}
+
+.veritas-evidence-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--veritas-spacing-sm);
+  background: var(--veritas-bg-secondary);
+  border-radius: var(--veritas-border-radius-sm);
+  transition: all var(--veritas-transition-fast);
+}
+
+.veritas-evidence-item:hover,
+.veritas-evidence-item:focus {
+  background: var(--veritas-border);
+  outline: none;
+}
+
+.veritas-evidence-source {
+  display: flex;
+  align-items: center;
+  gap: var(--veritas-spacing-xs);
+  flex: 1;
+  min-width: 0;
+}
+
+.veritas-evidence-icon {
+  font-size: var(--veritas-font-size-sm);
+  opacity: 0.7;
+}
+
+.veritas-evidence-name {
+  font-size: var(--veritas-font-size-sm);
+  color: var(--veritas-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.veritas-evidence-score {
+  font-size: var(--veritas-font-size-xs);
+  font-weight: 600;
+  color: var(--veritas-text-secondary);
+  background: var(--veritas-bg-primary);
+  padding: 2px var(--veritas-spacing-xs);
+  border-radius: 4px;
+}
+
+.veritas-no-evidence {
+  font-size: var(--veritas-font-size-sm);
+  color: var(--veritas-text-secondary);
+  font-style: italic;
+  text-align: center;
+  padding: var(--veritas-spacing-md);
+}
+
+/* ===== METADADOS ===== */
+.veritas-metadata-section {
+  display: grid;
+  gap: var(--veritas-spacing-sm);
+}
+
+.veritas-metadata-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  gap: var(--veritas-spacing-sm);
+}
+
+.veritas-metadata-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: center;
+}
+
+.veritas-metadata-label {
+  font-size: var(--veritas-font-size-xs);
+  color: var(--veritas-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.veritas-metadata-value {
+  font-size: var(--veritas-font-size-sm);
+  font-weight: 600;
+  color: var(--veritas-text-primary);
+}
+
+/* ===== AÇÕES ===== */
+.veritas-actions-section {
+  border-top: 1px solid var(--veritas-border);
+  padding-top: var(--veritas-spacing-md);
+}
+
+.veritas-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  gap: var(--veritas-spacing-sm);
+}
+
+.veritas-action-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--veritas-spacing-xs);
+  padding: var(--veritas-spacing-sm);
+  background: var(--veritas-bg-secondary);
+  border: 1px solid var(--veritas-border);
+  border-radius: var(--veritas-border-radius-sm);
+  color: var(--veritas-text-primary);
+  cursor: pointer;
+  transition: all var(--veritas-transition-fast);
+  font-size: var(--veritas-font-size-xs);
+  text-align: center;
+}
+
+.veritas-action-btn:hover {
+  background: var(--veritas-border);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.veritas-action-btn:focus {
+  outline: 2px solid var(--veritas-uncertain);
+  outline-offset: 2px;
+}
+
+.veritas-action-btn:active {
+  transform: translateY(0);
+}
+
+.veritas-action-icon {
+  font-size: var(--veritas-font-size-base);
+  line-height: 1;
+}
+
+.veritas-action-text {
+  font-weight: 500;
+  line-height: 1;
+}
+
+/* ===== RESPONSIVIDADE ===== */
+@media (max-width: 480px) {
+  .veritas-tooltip {
+    min-width: 260px;
+    max-width: calc(100vw - 20px);
+  }
+  
+  .veritas-tooltip-content {
+    padding: var(--veritas-spacing-md);
+    gap: var(--veritas-spacing-md);
+  }
+  
+  .veritas-actions-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .veritas-metadata-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 320px) {
+  .veritas-tooltip {
+    min-width: 240px;
+  }
+  
+  .veritas-actions-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .veritas-metadata-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ===== ACESSIBILIDADE ===== */
+@media (prefers-reduced-motion: reduce) {
+  .veritas-tooltip-container,
+  .veritas-confidence-fill,
+  .veritas-action-btn,
+  .veritas-evidence-item {
+    transition: none;
+  }
+  
+  .veritas-confidence-fill::after {
+    animation: none;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .veritas-tooltip {
+    border-width: 2px;
+  }
+  
+  .veritas-action-btn {
+    border-width: 2px;
+  }
+  
+  .veritas-close-btn:focus,
+  .veritas-action-btn:focus {
+    outline-width: 3px;
+  }
+}
+
+/* ===== PRINT STYLES ===== */
+@media print {
+  .veritas-tooltip-container {
+    position: static !important;
+    opacity: 1 !important;
+    transform: none !important;
+    box-shadow: none !important;
+    border: 2px solid #000 !important;
+    page-break-inside: avoid;
+  }
+  
+  .veritas-close-btn,
+  .veritas-actions-section {
+    display: none !important;
+  }
+}

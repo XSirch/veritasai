@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VeritasAI - Demo Fluxo End-to-End</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .demo-container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .demo-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .demo-header h1 {
+            color: #2563eb;
+            margin-bottom: 10px;
+        }
+        
+        .demo-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+        }
+        
+        .demo-section h3 {
+            color: #374151;
+            margin-top: 0;
+        }
+        
+        .text-area {
+            width: 100%;
+            min-height: 120px;
+            padding: 15px;
+            border: 2px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 16px;
+            resize: vertical;
+        }
+        
+        .text-area:focus {
+            outline: none;
+            border-color: #2563eb;
+        }
+        
+        .verify-button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        
+        .verify-button:hover {
+            background: #1d4ed8;
+        }
+        
+        .verify-button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+        
+        .result-container {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 8px;
+            display: none;
+        }
+        
+        .result-success {
+            background: #dcfce7;
+            border: 2px solid #16a34a;
+            color: #166534;
+        }
+        
+        .result-error {
+            background: #fef2f2;
+            border: 2px solid #dc2626;
+            color: #991b1b;
+        }
+        
+        .result-warning {
+            background: #fefce8;
+            border: 2px solid #ca8a04;
+            color: #92400e;
+        }
+        
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .stat-card {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2563eb;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: #64748b;
+            margin-top: 5px;
+        }
+        
+        .log-container {
+            background: #1f2937;
+            color: #f9fafb;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .log-entry {
+            margin-bottom: 5px;
+        }
+        
+        .log-timestamp {
+            color: #9ca3af;
+        }
+        
+        .log-info { color: #60a5fa; }
+        .log-success { color: #34d399; }
+        .log-warning { color: #fbbf24; }
+        .log-error { color: #f87171; }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <div class="demo-header">
+            <h1>🔍 VeritasAI - Demo Fluxo End-to-End</h1>
+            <p>Demonstração completa do fluxo de verificação de informações</p>
+        </div>
+        
+        <div class="demo-section">
+            <h3>📝 1. Seleção e Entrada de Texto</h3>
+            <textarea 
+                id="textInput" 
+                class="text-area" 
+                placeholder="Digite ou cole o texto que deseja verificar...&#10;&#10;Exemplo: 'A Terra é plana e o aquecimento global é uma farsa criada pelos cientistas.'"
+            ></textarea>
+            <button id="verifyButton" class="verify-button">🔍 Verificar Informação</button>
+            
+            <div id="resultContainer" class="result-container">
+                <h4 id="resultTitle"></h4>
+                <p id="resultMessage"></p>
+                <div id="resultDetails"></div>
+            </div>
+        </div>
+        
+        <div class="demo-section">
+            <h3>📊 2. Estatísticas do Sistema</h3>
+            <div class="stats-container">
+                <div class="stat-card">
+                    <div class="stat-value" id="totalVerifications">0</div>
+                    <div class="stat-label">Total de Verificações</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="successRate">0%</div>
+                    <div class="stat-label">Taxa de Sucesso</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="averageTime">0ms</div>
+                    <div class="stat-label">Tempo Médio</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="activeVerifications">0</div>
+                    <div class="stat-label">Verificações Ativas</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="demo-section">
+            <h3>📋 3. Log do Sistema</h3>
+            <div id="logContainer" class="log-container">
+                <div class="log-entry">
+                    <span class="log-timestamp">[00:00:00]</span>
+                    <span class="log-info">Sistema inicializado - Aguardando entrada...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Simulação do Integration Service
+        class DemoIntegrationService {
+            constructor() {
+                this.stats = {
+                    totalVerifications: 0,
+                    successfulVerifications: 0,
+                    failedVerifications: 0,
+                    averageResponseTime: 0
+                };
+                this.activeVerifications = new Map();
+                this.log('Sistema inicializado - Aguardando entrada...', 'info');
+            }
+            
+            log(message, type = 'info') {
+                const timestamp = new Date().toLocaleTimeString();
+                const logContainer = document.getElementById('logContainer');
+                const logEntry = document.createElement('div');
+                logEntry.className = 'log-entry';
+                logEntry.innerHTML = `
+                    <span class="log-timestamp">[${timestamp}]</span>
+                    <span class="log-${type}">${message}</span>
+                `;
+                logContainer.appendChild(logEntry);
+                logContainer.scrollTop = logContainer.scrollHeight;
+            }
+            
+            validateInput(text) {
+                if (!text || text.trim().length < 10) {
+                    return { valid: false, error: 'Texto muito curto (mínimo 10 caracteres)' };
+                }
+                if (text.length > 5000) {
+                    return { valid: false, error: 'Texto muito longo (máximo 5000 caracteres)' };
+                }
+                return { valid: true };
+            }
+            
+            async executeVerificationFlow(text) {
+                const verificationId = `verification_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                const startTime = Date.now();
+                
+                try {
+                    this.log(`Iniciando verificação ${verificationId}`, 'info');
+                    this.log(`Texto: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"`, 'info');
+                    
+                    // Validação
+                    const validation = this.validateInput(text);
+                    if (!validation.valid) {
+                        throw new Error(validation.error);
+                    }
+                    
+                    // Registrar verificação ativa
+                    this.activeVerifications.set(verificationId, {
+                        id: verificationId,
+                        text: text,
+                        startTime: startTime,
+                        status: 'processing'
+                    });
+                    
+                    this.updateStats();
+                    this.log('Validação concluída - Enviando para análise...', 'info');
+                    
+                    // Simular análise (2-4 segundos)
+                    const analysisTime = 2000 + Math.random() * 2000;
+                    await new Promise(resolve => setTimeout(resolve, analysisTime));
+                    
+                    // Simular resultado baseado no conteúdo
+                    const result = this.generateMockResult(text);
+                    
+                    const responseTime = Date.now() - startTime;
+                    
+                    // Atualizar estatísticas
+                    this.stats.totalVerifications++;
+                    this.stats.successfulVerifications++;
+                    const totalTime = this.stats.averageResponseTime * (this.stats.totalVerifications - 1) + responseTime;
+                    this.stats.averageResponseTime = Math.round(totalTime / this.stats.totalVerifications);
+                    
+                    // Remover da lista ativa
+                    this.activeVerifications.delete(verificationId);
+                    
+                    this.log(`Verificação concluída em ${responseTime}ms`, 'success');
+                    this.log(`Classificação: ${result.classification} (${Math.round(result.confidence * 100)}% confiança)`, 'success');
+                    
+                    this.updateStats();
+                    
+                    return {
+                        success: true,
+                        data: result,
+                        verificationId: verificationId,
+                        responseTime: responseTime
+                    };
+                    
+                } catch (error) {
+                    this.stats.totalVerifications++;
+                    this.stats.failedVerifications++;
+                    this.activeVerifications.delete(verificationId);
+                    
+                    this.log(`Erro na verificação: ${error.message}`, 'error');
+                    this.updateStats();
+                    
+                    return {
+                        success: false,
+                        error: error.message,
+                        verificationId: verificationId,
+                        responseTime: Date.now() - startTime
+                    };
+                }
+            }
+            
+            generateMockResult(text) {
+                const lowerText = text.toLowerCase();
+                
+                // Detectar possíveis desinformações
+                const misinfoKeywords = ['terra plana', 'vacina causa', 'aquecimento global farsa', 'covid inventado'];
+                const factualKeywords = ['segundo estudos', 'pesquisa mostra', 'dados indicam', 'cientistas confirmam'];
+                
+                let classification = 'uncertain';
+                let confidence = 0.5;
+                let sources = [];
+                let evidences = [];
+                
+                if (misinfoKeywords.some(keyword => lowerText.includes(keyword))) {
+                    classification = 'false';
+                    confidence = 0.85 + Math.random() * 0.1;
+                    sources = ['WHO', 'NASA', 'IPCC', 'Nature'];
+                    evidences = [
+                        'Múltiplos estudos científicos contradizem esta afirmação',
+                        'Consenso científico estabelecido',
+                        'Evidências empíricas abundantes'
+                    ];
+                } else if (factualKeywords.some(keyword => lowerText.includes(keyword))) {
+                    classification = 'verified';
+                    confidence = 0.8 + Math.random() * 0.15;
+                    sources = ['PubMed', 'Google Scholar', 'Reuters'];
+                    evidences = [
+                        'Informação corroborada por fontes confiáveis',
+                        'Dados verificados em múltiplas fontes'
+                    ];
+                } else {
+                    confidence = 0.4 + Math.random() * 0.3;
+                    sources = ['Wikipedia', 'Fact-check sites'];
+                    evidences = ['Informação necessita de mais verificação'];
+                }
+                
+                return {
+                    classification: classification,
+                    confidence: confidence,
+                    sources: sources,
+                    evidences: evidences,
+                    analysisTime: Date.now(),
+                    metadata: {
+                        textLength: text.length,
+                        timestamp: Date.now()
+                    }
+                };
+            }
+            
+            updateStats() {
+                document.getElementById('totalVerifications').textContent = this.stats.totalVerifications;
+                document.getElementById('successRate').textContent = 
+                    this.stats.totalVerifications > 0 
+                        ? Math.round((this.stats.successfulVerifications / this.stats.totalVerifications) * 100) + '%'
+                        : '0%';
+                document.getElementById('averageTime').textContent = this.stats.averageResponseTime + 'ms';
+                document.getElementById('activeVerifications').textContent = this.activeVerifications.size;
+            }
+        }
+        
+        // Inicializar demo
+        const integrationService = new DemoIntegrationService();
+        
+        // Event listeners
+        document.getElementById('verifyButton').addEventListener('click', async () => {
+            const textInput = document.getElementById('textInput');
+            const verifyButton = document.getElementById('verifyButton');
+            const resultContainer = document.getElementById('resultContainer');
+            const resultTitle = document.getElementById('resultTitle');
+            const resultMessage = document.getElementById('resultMessage');
+            const resultDetails = document.getElementById('resultDetails');
+            
+            const text = textInput.value.trim();
+            
+            if (!text) {
+                alert('Por favor, digite um texto para verificar.');
+                return;
+            }
+            
+            // Desabilitar botão e mostrar loading
+            verifyButton.disabled = true;
+            verifyButton.textContent = '🔄 Verificando...';
+            resultContainer.style.display = 'none';
+            
+            try {
+                const result = await integrationService.executeVerificationFlow(text);
+                
+                if (result.success) {
+                    const data = result.data;
+                    resultContainer.className = 'result-container result-success';
+                    resultTitle.textContent = '✅ Verificação Concluída';
+                    
+                    let classificationText = '';
+                    switch (data.classification) {
+                        case 'verified':
+                            classificationText = '✅ Informação Verificada';
+                            break;
+                        case 'false':
+                            classificationText = '❌ Informação Falsa';
+                            resultContainer.className = 'result-container result-error';
+                            break;
+                        case 'uncertain':
+                            classificationText = '⚠️ Informação Incerta';
+                            resultContainer.className = 'result-container result-warning';
+                            break;
+                    }
+                    
+                    resultMessage.innerHTML = `
+                        <strong>${classificationText}</strong><br>
+                        Confiança: ${Math.round(data.confidence * 100)}%<br>
+                        Tempo de análise: ${result.responseTime}ms
+                    `;
+                    
+                    resultDetails.innerHTML = `
+                        <h5>📚 Fontes:</h5>
+                        <ul>${data.sources.map(source => `<li>${source}</li>`).join('')}</ul>
+                        <h5>🔍 Evidências:</h5>
+                        <ul>${data.evidences.map(evidence => `<li>${evidence}</li>`).join('')}</ul>
+                    `;
+                } else {
+                    resultContainer.className = 'result-container result-error';
+                    resultTitle.textContent = '❌ Erro na Verificação';
+                    resultMessage.textContent = result.error;
+                    resultDetails.innerHTML = '';
+                }
+                
+                resultContainer.style.display = 'block';
+                
+            } catch (error) {
+                resultContainer.className = 'result-container result-error';
+                resultTitle.textContent = '❌ Erro Inesperado';
+                resultMessage.textContent = error.message;
+                resultDetails.innerHTML = '';
+                resultContainer.style.display = 'block';
+            } finally {
+                verifyButton.disabled = false;
+                verifyButton.textContent = '🔍 Verificar Informação';
+            }
+        });
+        
+        // Exemplo de texto pré-preenchido
+        document.getElementById('textInput').value = 'A Terra é plana e o aquecimento global é uma farsa criada pelos cientistas para controlar a população mundial.';
+    </script>
+</body>
+</html>
