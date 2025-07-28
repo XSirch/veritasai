@@ -98,6 +98,10 @@ module.exports = (env, argv) => {
           {
             from: 'src/options/options.html',
             to: 'options/options.html'
+          },
+          {
+            from: 'src/background/api-integration.js',
+            to: 'background/api-integration.js'
           }
         ]
       })

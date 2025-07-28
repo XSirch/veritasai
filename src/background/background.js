@@ -3,6 +3,8 @@
  * Service Worker otimizado para Manifest V3
  */
 
+import { initializeServices, verifyFacts, getServiceStats, updateServiceConfig, testApiConnectivity } from './api-integration.js';
+
 console.log('🚀 VeritasAI Background Service iniciando...');
 
 // Verificar se é um service worker
@@ -40,12 +42,12 @@ async function initializeApiServices() {
 
     // Usar implementação inline diretamente (mais rápido)
     apiServices = {
-      async initializeServices(config) {
+      async initializeServices() {
         console.log('🔧 Serviços inline prontos');
         return true;
       },
 
-      async verifyFacts(text, options = {}) {
+      async verifyFacts(text) {
         console.log('🔍 Verificando fatos:', text.substring(0, 50) + '...');
 
         // Análise simples baseada em padrões
@@ -93,7 +95,7 @@ async function initializeApiServices() {
         };
       },
 
-      async testApiConnectivity(apiType, apiKey) {
+      async testApiConnectivity(_, apiKey) {
         return {
           success: apiKey && apiKey.length > 10,
           message: apiKey && apiKey.length > 10 ? 'API key válida' : 'API key inválida',
@@ -127,7 +129,7 @@ async function getStoredConfiguration() {
 function setupMessageListeners() {
   console.log('📡 Configurando listeners de mensagens...');
   
-  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  chrome.runtime.onMessage.addListener((request, _, sendResponse) => {
     console.log('📨 Mensagem recebida:', request.action, request);
     
     // Processar mensagem de forma assíncrona
@@ -208,7 +210,7 @@ function setupEventListeners() {
 /**
  * Manipula obtenção de configuração
  */
-async function handleGetConfiguration(request) {
+async function handleGetConfiguration() {
   try {
     console.log('📋 Obtendo configuração...');
     
@@ -384,7 +386,7 @@ async function handleVerifyText(request) {
 /**
  * Manipula obtenção de estatísticas
  */
-async function handleGetStats(request) {
+async function handleGetStats() {
   try {
     console.log('📊 Obtendo estatísticas...');
 
@@ -425,7 +427,7 @@ async function handleGetStats(request) {
 /**
  * Manipula limpeza de cache
  */
-async function handleClearCache(request) {
+async function handleClearCache() {
   try {
     console.log('🧹 Limpando cache...');
     
@@ -511,39 +513,51 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
         case 'verifyText':
           console.log('🔍 Processando verifyText...');
-          // Análise simples inline
-          const text = request.data?.text || request.text || '';
-          const lowerText = text.toLowerCase();
-          let classification = 'inconclusiva';
-          let confidence = 0.5;
-          let summary = 'Análise baseada em padrões de texto.';
 
-          if (/\d+%|por.*cento|estatística/i.test(lowerText)) {
-            classification = 'requer verificação';
-            confidence = 0.6;
-            summary = 'Texto contém dados estatísticos que requerem verificação.';
-          } else if (/segundo.*pesquisa|universidade|dados.*oficiais/i.test(lowerText)) {
-            classification = 'provável';
-            confidence = 0.8;
-            summary = 'Texto contém referências a fontes aparentemente confiáveis.';
-          } else if (/100%.*pessoas|médicos.*recomendam|governo.*esconde/i.test(lowerText)) {
-            classification = 'duvidosa';
-            confidence = 0.3;
-            summary = 'Texto contém padrões típicos de informações questionáveis.';
+          // Usar integração real com APIs
+          try {
+            console.log('🔄 Inicializando serviços de APIs...');
+
+            // Obter configuração atual
+            const configResult = await chrome.storage.sync.get(['veritasConfig']);
+            const config = configResult.veritasConfig || {};
+            console.log('📋 Configuração carregada:', {
+              hasGoogleKey: !!(config.googleApiKey && config.googleApiKey.length > 20),
+              hasGroqKey: !!(config.groqApiKey && config.groqApiKey.length > 20)
+            });
+
+            // Inicializar serviços
+            console.log('🔧 Inicializando serviços de API...');
+            await initializeServices(config);
+
+            // Executar verificação real
+            const text = request.data?.text || request.text || '';
+            const options = request.data?.options || request.options || {};
+
+            console.log('🔍 Executando verificação com APIs...');
+            const result = await verifyFacts(text, options);
+
+            response = result;
+
+          } catch (error) {
+            console.error('❌ Erro na verificação com APIs:', error.message);
+
+            response = {
+              success: false,
+              error: `Falha na verificação: ${error.message}`,
+              data: {
+                classification: 'erro',
+                confidence: 0.0,
+                summary: `Erro na verificação: ${error.message}. Verifique suas chaves de API.`,
+                sources: ['Sistema'],
+                details: {
+                  error: error.message,
+                  timestamp: Date.now()
+                }
+              },
+              timestamp: Date.now()
+            };
           }
-
-          response = {
-            success: true,
-            data: {
-              classification,
-              confidence,
-              summary,
-              sources: ['Análise de Padrões', 'VeritasAI'],
-              details: { strategy: 'inline', processingTime: 200 }
-            },
-            responseTime: 200,
-            timestamp: Date.now()
-          };
           break;
 
         case 'testApiKey':

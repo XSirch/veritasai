@@ -93,9 +93,9 @@ describe('ConfigService', () => {
   
   describe('Validação de API Keys', () => {
     test('deve validar Google API key corretamente', () => {
-      const validKey = 'AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI';
+      const validKey = 'AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI-FAKE-KEY-FOR-TESTING';
       const invalidKey = 'invalid-key';
-      
+
       expect(configService.validateApiKey('google', validKey)).toBe(true);
       expect(configService.validateApiKey('google', invalidKey)).toBe(false);
       expect(configService.validateApiKey('google', '')).toBe(false);
