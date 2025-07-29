@@ -10,10 +10,12 @@ class PopupManager {
       saveDelay: 1000,
       toastDuration: 5000 // Aumentado para 5 segundos
     };
-    
+
     this.elements = {};
-    this.currentConfig = {};
+    this.currentConfig = this.getDefaultConfiguration(); // Inicializar com configuração padrão
     this.saveTimer = null;
+
+    console.log('🏗️ PopupManager construído com configuração padrão:', this.currentConfig);
     this.isLoading = false;
     
     this.init();
@@ -184,7 +186,9 @@ class PopupManager {
 
       if (response && response.success) {
         console.log('✅ Configurações carregadas via background script');
-        this.currentConfig = response.data || {};
+        console.log('📥 Resposta recebida para getConfiguration:', response);
+        this.currentConfig = response.config || response.data || {};
+        console.log('🔧 Configuração atual definida:', this.currentConfig);
         this.populateForm();
         this.updateApiStatus();
         return;
@@ -229,15 +233,29 @@ class PopupManager {
     console.log('📝 Populando formulário com configuração:', this.currentConfig);
     const config = this.currentConfig;
 
+    // Debug: verificar se a configuração tem os dados esperados
+    console.log('🔍 Dados da configuração:');
+    console.log('  - groqApiKey:', config.groqApiKey ? config.groqApiKey.substring(0, 10) + '...' : 'não definida');
+    console.log('  - groqModel:', config.groqModel || 'não definido');
+    console.log('  - language:', config.language || 'não definido');
+
     try {
       // API Keys - apenas Groq
       if (this.elements.groqApiKey) {
-        this.elements.groqApiKey.value = config.groqApiKey || '';
+        const apiKeyValue = config.groqApiKey || '';
+        this.elements.groqApiKey.value = apiKeyValue;
+        console.log('🔑 API Key populada:', apiKeyValue ? apiKeyValue.substring(0, 10) + '...' : 'vazia');
+      } else {
+        console.error('❌ Elemento groqApiKey não encontrado');
       }
 
       // Groq Model
       if (this.elements.groqModelSelect) {
-        this.elements.groqModelSelect.value = config.groqModel || 'llama3-70b-8192';
+        const modelValue = config.groqModel || 'llama3-70b-8192';
+        this.elements.groqModelSelect.value = modelValue;
+        console.log('🤖 Modelo populado:', modelValue);
+      } else {
+        console.error('❌ Elemento groqModelSelect não encontrado');
       }
     
     // Preferences
