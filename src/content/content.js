@@ -319,7 +319,7 @@ class EventManager {
         this.state.lastSelection = selectionData;
 
         // Verificar se verificação automática está habilitada
-        const autoVerifyEnabled = this.state.settings?.autoVerify || VERITAS_CONFIG.AUTO_VERIFY;
+        const autoVerifyEnabled = extensionState.settings?.autoVerify || VERITAS_CONFIG.AUTO_VERIFY;
 
         console.log('🔍 Texto selecionado:', {
           text: selectedText.substring(0, 50) + '...',
@@ -328,10 +328,10 @@ class EventManager {
         });
 
         console.log('🔧 Debug autoVerify:', {
-          'settings.autoVerify': this.state.settings?.autoVerify,
+          'extensionState.settings?.autoVerify': extensionState.settings?.autoVerify,
           'VERITAS_CONFIG.AUTO_VERIFY': VERITAS_CONFIG.AUTO_VERIFY,
           'autoVerifyEnabled': autoVerifyEnabled,
-          'settings completo': this.state.settings
+          'extensionState.settings completo': extensionState.settings
         });
 
         if (autoVerifyEnabled) {
@@ -448,12 +448,19 @@ class VeritasContentScript {
 
       const response = await this.communicationManager.sendMessage('getSettings');
 
+      console.log('📥 Resposta do background para getSettings:', response);
+
       if (response && response.success) {
         extensionState.enabled = response.data?.enabled ?? true;
         extensionState.settings = response.data || {};
 
+        console.log('⚙️ Settings carregadas:', extensionState.settings);
+        console.log('🔧 autoVerify na configuração:', extensionState.settings.autoVerify);
+
         // Aplicar configurações específicas
         this.applySettings(extensionState.settings);
+      } else {
+        console.warn('❌ Falha ao carregar configurações:', response);
       }
     } catch (error) {
       console.warn('Erro ao carregar configurações:', error);
@@ -461,6 +468,8 @@ class VeritasContentScript {
   }
 
   applySettings(settings) {
+    console.log('🔧 applySettings chamada com:', settings);
+
     if (settings.minTextLength) {
       VERITAS_CONFIG.MIN_TEXT_LENGTH = settings.minTextLength;
     }
@@ -473,7 +482,10 @@ class VeritasContentScript {
 
     // Aplicar configuração de verificação automática
     if (typeof settings.autoVerify !== 'undefined') {
+      console.log('✅ Aplicando autoVerify:', settings.autoVerify);
       VERITAS_CONFIG.AUTO_VERIFY = settings.autoVerify;
+    } else {
+      console.log('⚠️ autoVerify não definido nas configurações');
     }
 
     console.log('⚙️ Configurações aplicadas:', {

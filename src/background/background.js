@@ -82,10 +82,11 @@ async function handleGetConfiguration() {
   try {
     const result = await chrome.storage.sync.get(['veritasConfig']);
     const config = result.veritasConfig || DEFAULT_CONFIG;
-    
+
     return {
       success: true,
-      config: config,
+      data: config,        // ✅ Mudado de 'config' para 'data'
+      config: config,      // ✅ Mantido para compatibilidade com popup
       hasGroqKey: !!(config.groqApiKey && config.groqApiKey.length > 20)
     };
   } catch (error) {
@@ -93,7 +94,8 @@ async function handleGetConfiguration() {
     return {
       success: false,
       error: error.message,
-      config: DEFAULT_CONFIG
+      data: DEFAULT_CONFIG,  // ✅ Mudado de 'config' para 'data'
+      config: DEFAULT_CONFIG // ✅ Mantido para compatibilidade
     };
   }
 }
