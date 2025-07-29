@@ -15,18 +15,18 @@
 [![Tests](https://img.shields.io/badge/tests-209%2F279-yellow)](https://github.com/XSirch/veritasai/actions)
 [![Build](https://github.com/XSirch/veritasai/workflows/CI/badge.svg)](https://github.com/XSirch/veritasai/actions)
 
-🛡️ **Extensão de navegador para verificação automática de confiabilidade de informações usando IA e fact-checking**
+🛡️ **Extensão de navegador para verificação automática de confiabilidade de informações usando Groq AI**
 
 > **⚠️ Projeto em Desenvolvimento**: Este projeto está atualmente em desenvolvimento ativo. Algumas funcionalidades podem não estar disponíveis ainda.
 
 ## 📋 Visão Geral
 
-VeritasAI é uma extensão de navegador que permite a classificação automática de textos selecionados em páginas web, determinando se a informação é: **confiável**, **inconclusiva**, **sem fundamento** ou **fake**.
+VeritasAI é uma extensão de navegador que permite a classificação automática de textos selecionados em páginas web, determinando se a informação é: **confiável**, **inconclusiva** ou **sem fundamento**.
 
-O sistema utiliza uma arquitetura híbrida com:
-- **Camada 1**: Google Fact Check Tools API (verificação primária)
-- **Camada 2**: Groq LLM API (fallback inteligente)
-- **Cache local**: Qdrant v1.15.0 + IndexedDB para performance
+O sistema utiliza uma arquitetura simplificada com:
+- **🤖 Groq AI**: Análise inteligente usando Llama 3.1 70B
+- **🔄 Loading Indicators**: Feedback visual durante verificação
+- **⚡ Performance**: Resposta rápida e interface otimizada
 
 ## 📊 Status do Projeto
 
@@ -99,13 +99,13 @@ A extensão agora suporta verificação automática de fatos!
 
 - 🔍 **Verificação em tempo real** de textos selecionados
 - ⚡ **Verificação automática** configurável (executa imediatamente ou mostra botão)
-- 🎯 **Classificação automática** com score de confiabilidade
-- 💾 **Cache inteligente** para respostas instantâneas
-- 🌐 **Funciona offline** com cache local
-- 🔧 **APIs configuráveis** (padrão ou personalizadas)
+- 🎯 **Classificação automática** com score de confiabilidade usando Groq AI
+- 🔄 **Loading indicators** com feedback visual "Analisando com IA..."
+- 🤖 **Groq AI (Llama 3.1 70B)** para análise inteligente de conteúdo
+- 🔧 **Configuração simples** - apenas Groq API key necessária
 - ♿ **Totalmente acessível** (WCAG 2.1 AA)
 - 🎨 **Interface responsiva** com tooltips informativos
-- 📝 **Processamento avançado de texto** com normalização Unicode e extração de sentenças
+- 📊 **Tratamento de rate limits** com mensagens claras ao usuário
 
 ## 🚀 Instalação Rápida
 
@@ -164,19 +164,14 @@ npm run build:dev
 ### Opção 1: Configuração Rápida (Recomendada)
 Use as APIs compartilhadas do aplicativo - funciona imediatamente sem configuração.
 
-### Opção 2: APIs Personalizadas
-Configure suas próprias API keys para limites dedicados:
+### Configuração da API
+Configure sua Groq API key para usar a extensão:
 
-1. **Google Fact Check Tools API**
-   - Acesse: https://console.developers.google.com/
-   - Ative a API: Fact Check Tools API
-   - Crie credenciais: API Key
-   - Adicione ao `.env`: `GOOGLE_FACT_CHECK_API_KEY=sua_key`
-
-2. **Groq API**
+1. **Groq AI API**
    - Acesse: https://console.groq.com/
-   - Crie uma conta e gere API key
-   - Adicione ao `.env`: `GROQ_API_KEY=sua_key`
+   - Crie uma conta gratuita
+   - Gere sua API key
+   - Configure na extensão via popup ou página de opções
 
 ## 🛠️ Desenvolvimento
 
@@ -502,9 +497,8 @@ Este projeto está licenciado sob a **MIT License** - veja o arquivo [LICENSE](L
 - **Arquitetura**: Clean Architecture + DDD
 
 ### Agradecimentos Especiais
-- 🙏 **Google** - Fact Check Tools API
-- 🙏 **Groq** - LLM API de alta performance
-- 🙏 **Qdrant** - Vector database open source
+- 🙏 **Groq** - LLM API de alta performance com Llama 3.1
+- 🙏 **Meta** - Modelo Llama 3.1 70B
 - 🙏 **Comunidade Open Source** - Bibliotecas e ferramentas
 
 ## 🎉 **STATUS ATUAL - INTEGRAÇÃO COMPLETA FUNCIONANDO (2025-01-28)**
