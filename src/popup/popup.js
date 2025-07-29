@@ -49,6 +49,7 @@ class PopupManager {
     // API inputs - apenas Groq
     this.elements.groqApiKey = document.getElementById('groq-api-key');
     this.elements.groqApiStatus = document.getElementById('groq-api-status');
+    this.elements.groqModelSelect = document.getElementById('groq-model-select');
 
     // Preference inputs
     this.elements.languageSelect = document.getElementById('language-select');
@@ -98,6 +99,11 @@ class PopupManager {
     // API key inputs - apenas Groq
     if (this.elements.groqApiKey) {
       this.elements.groqApiKey.addEventListener('input', () => this.handleApiKeyInput('groq'));
+    }
+
+    // Groq model select
+    if (this.elements.groqModelSelect) {
+      this.elements.groqModelSelect.addEventListener('change', () => this.handleModelChange());
     }
     
     // Toggle visibility buttons
@@ -218,6 +224,11 @@ class PopupManager {
       if (this.elements.groqApiKey) {
         this.elements.groqApiKey.value = config.groqApiKey || '';
       }
+
+      // Groq Model
+      if (this.elements.groqModelSelect) {
+        this.elements.groqModelSelect.value = config.groqModel || 'llama3-70b-8192';
+      }
     
     // Preferences
     if (this.elements.languageSelect) {
@@ -319,6 +330,7 @@ class PopupManager {
   getDefaultConfiguration() {
     return {
       groqApiKey: '',
+      groqModel: 'llama3-70b-8192',
       language: 'pt-BR',
       theme: 'auto',
       notificationsEnabled: true,
@@ -547,11 +559,14 @@ class PopupManager {
       button.innerHTML = '<span class="test-icon">⏳</span>';
       button.disabled = true;
 
+      // Obter modelo selecionado
+      const model = this.elements.groqModelSelect?.value || 'llama3-70b-8192';
+
       // Enviar para background script
-      const response = await this.sendMessage('testGroqApi', { apiKey });
+      const response = await this.sendMessage('testGroqApi', { apiKey, model });
 
       if (response && response.success) {
-        this.showToast('Groq AI testado com sucesso!', 'success');
+        this.showToast(`Groq AI testado com sucesso! Modelo: ${model}`, 'success');
         console.log('✅ Teste de Groq API bem-sucedido:', response);
       } else {
         this.showToast(`Erro no teste do Groq AI: ${response?.error || 'Erro desconhecido'}`, 'error');
@@ -602,6 +617,14 @@ class PopupManager {
     this.applyTheme(theme);
     this.scheduleAutoSave();
   }
+
+  handleModelChange() {
+    const model = this.elements.groqModelSelect?.value || 'llama3-70b-8192';
+    console.log('🤖 Modelo Groq alterado para:', model);
+
+    // Salvar automaticamente quando o modelo for alterado
+    this.scheduleAutoSave();
+  }
   
   async saveConfiguration(showFeedback = true) {
     try {
@@ -612,6 +635,7 @@ class PopupManager {
       // Coletar dados do formulário - apenas Groq
       const config = {
         groqApiKey: this.elements.groqApiKey?.value?.trim() || '',
+        groqModel: this.elements.groqModelSelect?.value || 'llama3-70b-8192',
         language: this.elements.languageSelect?.value || 'pt-BR',
         theme: this.elements.themeSelect?.value || 'auto',
         notificationsEnabled: this.elements.notificationsEnabled?.checked !== false,

@@ -306,6 +306,29 @@ body {
   border-color: var(--border-success);
 }
 
+.api-select {
+  width: 100%;
+  padding: var(--spacing-md);
+  border: 2px solid var(--border-color);
+  border-radius: var(--border-radius);
+  font-size: var(--font-size-base);
+  font-family: inherit;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  transition: border-color var(--transition-fast);
+  cursor: pointer;
+}
+
+.api-select:focus {
+  outline: none;
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.api-select:hover {
+  border-color: var(--border-hover);
+}
+
 .toggle-visibility,
 .test-api {
   display: flex;

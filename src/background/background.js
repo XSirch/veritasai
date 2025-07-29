@@ -8,6 +8,7 @@ console.log('🚀 VeritasAI Background Service iniciando (Groq Only)...');
 // Configuração padrão - apenas Groq AI
 const DEFAULT_CONFIG = {
   groqApiKey: '',
+  groqModel: 'llama3-70b-8192', // Modelo padrão atualizado
   language: 'pt-BR',
   theme: 'auto',
   notificationsEnabled: true,
@@ -48,7 +49,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           
         case 'testGroqApi':
           console.log('🧪 Testando Groq API...');
-          response = await testGroqApiKey(request.apiKey);
+          response = await testGroqApiKey(request.apiKey, request.model);
           break;
           
         default:
@@ -136,10 +137,12 @@ async function handleVerifyTextWithGroq(request) {
     const configResult = await chrome.storage.sync.get(['veritasConfig']);
     const config = configResult.veritasConfig || DEFAULT_CONFIG;
     const groqApiKey = config.groqApiKey;
-    
-    console.log('🔑 Configuração carregada:', { 
-      hasConfig: !!config, 
-      hasGroqKey: !!(groqApiKey && groqApiKey.length > 20)
+    const groqModel = config.groqModel || DEFAULT_CONFIG.groqModel;
+
+    console.log('🔑 Configuração carregada:', {
+      hasConfig: !!config,
+      hasGroqKey: !!(groqApiKey && groqApiKey.length > 20),
+      groqModel: groqModel
     });
     
     if (!groqApiKey || groqApiKey.trim() === '') {
@@ -169,7 +172,7 @@ async function handleVerifyTextWithGroq(request) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'llama-3.1-70b-versatile',
+        model: groqModel,
         messages: [
           {
             role: 'system',
@@ -306,8 +309,8 @@ Responda APENAS em formato JSON:
 /**
  * Testa se a API Key do Groq é válida
  */
-async function testGroqApiKey(apiKey) {
-  console.log('🧪 Testando Groq API Key:', apiKey?.substring(0, 10) + '...');
+async function testGroqApiKey(apiKey, model = DEFAULT_CONFIG.groqModel) {
+  console.log('🧪 Testando Groq API Key:', apiKey?.substring(0, 10) + '...', 'Modelo:', model);
 
   if (!apiKey || apiKey.trim() === '') {
     return {
@@ -326,7 +329,7 @@ async function testGroqApiKey(apiKey) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'llama-3.1-70b-versatile',
+        model: model,
         messages: [
           {
             role: 'user',
@@ -342,7 +345,7 @@ async function testGroqApiKey(apiKey) {
       return {
         success: true,
         message: 'Groq API Key válida e funcionando!',
-        details: `Teste realizado com sucesso. Modelo: ${data.model || 'llama-3.1-70b-versatile'}`
+        details: `Teste realizado com sucesso. Modelo: ${model}`
       };
     } else if (response.status === 429) {
       return {

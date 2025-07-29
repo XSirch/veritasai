@@ -94,6 +94,22 @@
             </a>
           </p>
         </div>
+
+        <!-- Groq Model Selection -->
+        <div class="api-group">
+          <label for="groq-model-select" class="api-label">
+            <span class="api-name">Modelo Groq AI</span>
+          </label>
+          <select id="groq-model-select" class="api-select">
+            <option value="llama3-70b-8192">Llama 3 70B (Recomendado)</option>
+            <option value="llama3-8b-8192">Llama 3 8B (Rápido)</option>
+            <option value="mixtral-8x7b-32768">Mixtral 8x7B (Contexto Longo)</option>
+            <option value="gemma-7b-it">Gemma 7B (Eficiente)</option>
+          </select>
+          <p class="api-help">
+            Escolha o modelo de IA para verificação. Llama 3 70B oferece melhor qualidade.
+          </p>
+        </div>
       </section>
 
       <!-- Preferences Section -->
