@@ -40,6 +40,18 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         case 'updateSettings':
           console.log('💾 Processando saveConfiguration...');
           response = await handleSaveConfiguration(request.config);
+
+          // Notificar content scripts sobre atualização de configurações
+          if (response.success) {
+            console.log('📢 Notificando content scripts sobre atualização de configurações...');
+            chrome.tabs.query({}, (tabs) => {
+              tabs.forEach(tab => {
+                chrome.tabs.sendMessage(tab.id, { action: 'settingsUpdated' }).catch(() => {
+                  // Ignorar erros para tabs que não têm content script
+                });
+              });
+            });
+          }
           break;
           
         case 'verifyText':

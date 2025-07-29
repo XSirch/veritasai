@@ -322,12 +322,20 @@ class EventManager {
         // Usar configuração do usuário se disponível, senão usar padrão
         let autoVerifyEnabled = false;
 
+        console.log('🔍 Estado atual do extensionState:', {
+          'extensionState existe': !!extensionState,
+          'extensionState.settings existe': !!extensionState.settings,
+          'extensionState.settings': extensionState.settings
+        });
+
         if (extensionState.settings && typeof extensionState.settings.autoVerify === 'boolean') {
           // Usar configuração explícita do usuário
           autoVerifyEnabled = extensionState.settings.autoVerify;
+          console.log('✅ Usando configuração do usuário:', autoVerifyEnabled);
         } else {
           // Fallback para configuração padrão
           autoVerifyEnabled = VERITAS_CONFIG.AUTO_VERIFY;
+          console.log('⚠️ Usando configuração padrão:', autoVerifyEnabled);
         }
 
         console.log('🔍 Texto selecionado:', {
@@ -434,11 +442,15 @@ class VeritasContentScript {
 
   setupCommunication() {
     // Configurar listeners de mensagens do background
-    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
       if (request.action === 'verifySelectedText') {
         if (extensionState.lastSelection) {
           this.verifyText(extensionState.lastSelection);
         }
+      } else if (request.action === 'settingsUpdated') {
+        // Recarregar configurações quando atualizadas
+        console.log('🔄 Configurações atualizadas, recarregando...');
+        await this.loadSettings();
       }
       return true;
     });
@@ -450,6 +462,8 @@ class VeritasContentScript {
 
   async loadSettings() {
     try {
+      console.log('🔄 Iniciando carregamento de configurações...');
+
       // Verificar se communicationManager existe
       if (!this.communicationManager) {
         console.warn('CommunicationManager não inicializado, usando configurações padrão');
@@ -466,15 +480,24 @@ class VeritasContentScript {
 
         console.log('⚙️ Settings carregadas:', extensionState.settings);
         console.log('🔧 autoVerify na configuração:', extensionState.settings.autoVerify);
+        console.log('🔧 Tipo de autoVerify:', typeof extensionState.settings.autoVerify);
 
         // Aplicar configurações específicas
         this.applySettings(extensionState.settings);
+
+        console.log('✅ Configurações carregadas e aplicadas com sucesso');
       } else {
         console.warn('❌ Falha ao carregar configurações:', response);
       }
     } catch (error) {
       console.warn('Erro ao carregar configurações:', error);
     }
+  }
+
+  // Função para recarregar configurações manualmente (para debug)
+  async reloadSettings() {
+    console.log('🔄 Recarregamento manual de configurações solicitado');
+    await this.loadSettings();
   }
 
   applySettings(settings) {
@@ -667,6 +690,16 @@ setTimeout(() => {
   window.VeritasAI.VERITAS_CONFIG = VERITAS_CONFIG;
   window.VeritasAI.extensionState = extensionState;
   window.veritasContentScript = veritasContentScript;
+
+  // Adicionar função de debug global para recarregar configurações
+  window.veritasReloadSettings = async () => {
+    if (window.veritasContentScript) {
+      console.log('🔄 Recarregando configurações via comando global...');
+      await window.veritasContentScript.reloadSettings();
+    } else {
+      console.warn('❌ VeritasAI não inicializado');
+    }
+  };
 
   console.log('🌐 window.VeritasAI atualizado:', window.VeritasAI);
 }, 100);
