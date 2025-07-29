@@ -181,6 +181,48 @@ class UIManager {
     this.state.currentTooltip = null;
   }
 
+  showLoadingIndicator(selectionData, message = 'Analisando com IA...') {
+    console.log('🔄 Mostrando loading indicator:', message);
+
+    // Remover elementos existentes
+    this.hideAllElements();
+
+    // Criar loading indicator
+    const loadingDiv = document.createElement('div');
+    loadingDiv.id = 'veritas-loading';
+    loadingDiv.className = 'veritas-loading';
+    loadingDiv.innerHTML = `
+      <div class="veritas-loading-content">
+        <div class="veritas-spinner"></div>
+        <span class="veritas-loading-text">${message}</span>
+      </div>
+    `;
+
+    // Posicionar próximo ao texto selecionado
+    const rect = selectionData.range.getBoundingClientRect();
+    loadingDiv.style.position = 'fixed';
+    loadingDiv.style.left = `${rect.left + window.scrollX}px`;
+    loadingDiv.style.top = `${rect.bottom + window.scrollY + 5}px`;
+    loadingDiv.style.zIndex = '10000';
+
+    document.body.appendChild(loadingDiv);
+    this.state.currentLoading = loadingDiv;
+
+    console.log('✅ Loading indicator mostrado');
+  }
+
+  hideLoadingIndicator() {
+    console.log('🔄 Escondendo loading indicator...');
+
+    const existingLoading = document.getElementById('veritas-loading');
+    if (existingLoading) {
+      existingLoading.remove();
+    }
+
+    this.state.currentLoading = null;
+    console.log('✅ Loading indicator escondido');
+  }
+
   onVerifyClick(selectionData) {
     console.log('🔍 Clique em verificar:', selectionData.text.substring(0, 50) + '...');
     console.log('🔍 veritasContentScript existe:', !!window.veritasContentScript);
@@ -445,6 +487,10 @@ class VeritasContentScript {
       this.uiManager.hideAllElements();
       console.log('🙈 Elementos UI escondidos');
 
+      // Mostrar loading indicator
+      console.log('🔄 Mostrando loading indicator...');
+      this.uiManager.showLoadingIndicator(selectionData, 'Analisando com IA...');
+
       console.log('🔍 Iniciando verificação de texto:', selectionData.text.substring(0, 50) + '...');
 
       // Enviar para background script para verificação real
@@ -478,6 +524,8 @@ class VeritasContentScript {
     } catch (error) {
       console.error('❌ Erro na verificação:', error);
     } finally {
+      // Esconder loading indicator
+      this.uiManager.hideLoadingIndicator();
       extensionState.isProcessing = false;
       console.log('🔓 Processo de verificação finalizado');
     }

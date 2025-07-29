@@ -46,10 +46,8 @@ class PopupManager {
     this.elements.extensionStatus = document.getElementById('extension-status');
     this.elements.apiStatus = document.getElementById('api-status');
 
-    // API inputs
-    this.elements.googleApiKey = document.getElementById('google-api-key');
+    // API inputs - apenas Groq
     this.elements.groqApiKey = document.getElementById('groq-api-key');
-    this.elements.googleApiStatus = document.getElementById('google-api-status');
     this.elements.groqApiStatus = document.getElementById('groq-api-status');
 
     // Preference inputs
@@ -97,10 +95,7 @@ class PopupManager {
    * Configura event listeners
    */
   setupEventListeners() {
-    // API key inputs
-    if (this.elements.googleApiKey) {
-      this.elements.googleApiKey.addEventListener('input', () => this.handleApiKeyInput('google'));
-    }
+    // API key inputs - apenas Groq
     if (this.elements.groqApiKey) {
       this.elements.groqApiKey.addEventListener('input', () => this.handleApiKeyInput('groq'));
     }
@@ -219,10 +214,7 @@ class PopupManager {
     const config = this.currentConfig;
 
     try {
-      // API Keys
-      if (this.elements.googleApiKey) {
-        this.elements.googleApiKey.value = config.googleApiKey || '';
-      }
+      // API Keys - apenas Groq
       if (this.elements.groqApiKey) {
         this.elements.groqApiKey.value = config.groqApiKey || '';
       }
@@ -274,8 +266,11 @@ class PopupManager {
    * Manipula entrada de API key
    */
   handleApiKeyInput(apiType) {
-    const input = apiType === 'google' ? this.elements.googleApiKey : this.elements.groqApiKey;
-    const statusElement = apiType === 'google' ? this.elements.googleApiStatus : this.elements.groqApiStatus;
+    // Apenas Groq suportado
+    if (apiType !== 'groq') return;
+
+    const input = this.elements.groqApiKey;
+    const statusElement = this.elements.groqApiStatus;
     const testButton = document.querySelector(`[data-api="${apiType}"]`);
     
     if (!input || !statusElement || !testButton) return;
@@ -310,16 +305,12 @@ class PopupManager {
    * Valida formato de API key
    */
   validateApiKey(apiType, key) {
-    switch (apiType) {
-      case 'google':
-        // Google API keys geralmente têm 39 caracteres
-        return /^[A-Za-z0-9_-]{35,45}$/.test(key);
-      case 'groq':
-        // Groq API keys começam com 'gsk_'
-        return /^gsk_[A-Za-z0-9]{48,52}$/.test(key);
-      default:
-        return false;
+    // Apenas Groq suportado
+    if (apiType === 'groq') {
+      // Groq API keys começam com 'gsk_'
+      return /^gsk_[A-Za-z0-9]{48,52}$/.test(key);
     }
+    return false;
   }
   
   /**
@@ -327,7 +318,6 @@ class PopupManager {
    */
   getDefaultConfiguration() {
     return {
-      googleApiKey: '',
       groqApiKey: '',
       language: 'pt-BR',
       theme: 'auto',
@@ -470,18 +460,15 @@ class PopupManager {
     console.log('🔄 Atualizando status das APIs...');
 
     try {
-      const hasGoogle = this.currentConfig.googleApiKey && this.currentConfig.googleApiKey.length > 0;
       const hasGroq = this.currentConfig.groqApiKey && this.currentConfig.groqApiKey.length > 0;
 
-      console.log('📊 Status das APIs:', { hasGoogle, hasGroq });
+      console.log('📊 Status da API Groq:', { hasGroq });
 
       if (this.elements.apiStatus) {
-        if (hasGoogle && hasGroq) {
-          this.elements.apiStatus.innerHTML = '<span class="status-indicator active"></span>Configuradas';
-        } else if (hasGoogle || hasGroq) {
-          this.elements.apiStatus.innerHTML = '<span class="status-indicator pending"></span>Parcial';
+        if (hasGroq) {
+          this.elements.apiStatus.innerHTML = '<span class="status-indicator active"></span>Groq AI Configurado';
         } else {
-          this.elements.apiStatus.innerHTML = '<span class="status-indicator error"></span>Não configuradas';
+          this.elements.apiStatus.innerHTML = '<span class="status-indicator error"></span>Groq AI Não Configurado';
         }
         console.log('✅ Status das APIs atualizado');
       } else {
@@ -541,10 +528,13 @@ class PopupManager {
     console.log('🧪 Testando API key:', apiType);
 
     try {
-      // Obter a API key do input
-      const apiKey = apiType === 'google'
-        ? this.elements.googleApiKey?.value?.trim()
-        : this.elements.groqApiKey?.value?.trim();
+      // Apenas Groq suportado
+      if (apiType !== 'groq') {
+        this.showToast('Apenas Groq AI é suportado', 'error');
+        return;
+      }
+
+      const apiKey = this.elements.groqApiKey?.value?.trim();
 
       if (!apiKey) {
         this.showToast('Por favor, insira a API key primeiro', 'warning');
@@ -558,14 +548,14 @@ class PopupManager {
       button.disabled = true;
 
       // Enviar para background script
-      const response = await this.sendMessage('testApiKey', { apiType, apiKey });
+      const response = await this.sendMessage('testGroqApi', { apiKey });
 
       if (response && response.success) {
-        this.showToast(`API ${apiType} testada com sucesso!`, 'success');
-        console.log('✅ Teste de API bem-sucedido:', response.data);
+        this.showToast('Groq AI testado com sucesso!', 'success');
+        console.log('✅ Teste de Groq API bem-sucedido:', response);
       } else {
-        this.showToast(`Erro no teste da API ${apiType}: ${response?.error || 'Erro desconhecido'}`, 'error');
-        console.error('❌ Erro no teste de API:', response);
+        this.showToast(`Erro no teste do Groq AI: ${response?.error || 'Erro desconhecido'}`, 'error');
+        console.error('❌ Erro no teste de Groq API:', response);
       }
 
       // Restaurar botão
@@ -619,9 +609,8 @@ class PopupManager {
         this.showLoading('Salvando configurações...');
       }
 
-      // Coletar dados do formulário
+      // Coletar dados do formulário - apenas Groq
       const config = {
-        googleApiKey: this.elements.googleApiKey?.value?.trim() || '',
         groqApiKey: this.elements.groqApiKey?.value?.trim() || '',
         language: this.elements.languageSelect?.value || 'pt-BR',
         theme: this.elements.themeSelect?.value || 'auto',

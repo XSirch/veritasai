@@ -1,22 +1,12 @@
 /**
- * VeritasAI - Background Service Worker
- * Service Worker otimizado para Manifest V3
+ * VeritasAI - Background Service Worker (Groq Only)
+ * Versão simplificada usando apenas Groq AI
  */
 
-import { initializeServices, verifyFacts, getServiceStats, updateServiceConfig, testApiConnectivity } from './api-integration.js';
+console.log('🚀 VeritasAI Background Service iniciando (Groq Only)...');
 
-console.log('🚀 VeritasAI Background Service iniciando...');
-
-// Verificar se é um service worker
-if (typeof importScripts !== 'undefined') {
-  console.log('📦 Executando como Service Worker');
-} else {
-  console.log('📦 Executando como Background Script');
-}
-
-// Configuração padrão
+// Configuração padrão - apenas Groq AI
 const DEFAULT_CONFIG = {
-  googleApiKey: '',
   groqApiKey: '',
   language: 'pt-BR',
   theme: 'auto',
@@ -30,205 +20,79 @@ const DEFAULT_CONFIG = {
   verboseLogging: false
 };
 
-// Estado do service worker
-let isInitialized = false;
-let apiServices = null;
-const startTime = Date.now();
-
-// Carregar integração de APIs (lazy loading)
-async function initializeApiServices() {
-  try {
-    console.log('🔄 Inicializando serviços de API...');
-
-    // Usar implementação inline diretamente (mais rápido)
-    apiServices = {
-      async initializeServices() {
-        console.log('🔧 Serviços inline prontos');
-        return true;
-      },
-
-      async verifyFacts(text) {
-        console.log('🔍 Verificando fatos:', text.substring(0, 50) + '...');
-
-        // Análise simples baseada em padrões
-        const lowerText = text.toLowerCase();
-        let classification = 'inconclusiva';
-        let confidence = 0.5;
-        let summary = 'Análise baseada em padrões de texto.';
-
-        if (/\d+%|por.*cento|estatística/i.test(lowerText)) {
-          classification = 'requer verificação';
-          confidence = 0.6;
-          summary = 'Texto contém dados estatísticos que requerem verificação.';
-        } else if (/segundo.*pesquisa|universidade|dados.*oficiais/i.test(lowerText)) {
-          classification = 'provável';
-          confidence = 0.8;
-          summary = 'Texto contém referências a fontes aparentemente confiáveis.';
-        } else if (/100%.*pessoas|médicos.*recomendam|governo.*esconde/i.test(lowerText)) {
-          classification = 'duvidosa';
-          confidence = 0.3;
-          summary = 'Texto contém padrões típicos de informações questionáveis.';
-        }
-
-        return {
-          success: true,
-          data: {
-            classification,
-            confidence,
-            summary,
-            sources: ['Análise de Padrões', 'VeritasAI'],
-            details: {
-              strategy: 'inline',
-              processingTime: 200
-            }
-          },
-          responseTime: 200,
-          timestamp: Date.now()
-        };
-      },
-
-      getServiceStats() {
-        return {
-          totalRequests: 0,
-          successfulRequests: 0,
-          servicesInitialized: true
-        };
-      },
-
-      async testApiConnectivity(_, apiKey) {
-        return {
-          success: apiKey && apiKey.length > 10,
-          message: apiKey && apiKey.length > 10 ? 'API key válida' : 'API key inválida',
-          responseTime: 100
-        };
+// Configurar listener de mensagens principal
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  console.log('📨 Mensagem recebida:', request.action, request);
+  
+  (async () => {
+    try {
+      let response;
+      
+      switch (request.action) {
+        case 'getConfiguration':
+        case 'getSettings':
+          console.log('📋 Processando getConfiguration...');
+          response = await handleGetConfiguration();
+          break;
+          
+        case 'saveConfiguration':
+        case 'updateSettings':
+          console.log('💾 Processando saveConfiguration...');
+          response = await handleSaveConfiguration(request.config);
+          break;
+          
+        case 'verifyText':
+          console.log('🔍 Processando verifyText...');
+          response = await handleVerifyTextWithGroq(request);
+          break;
+          
+        case 'testGroqApi':
+          console.log('🧪 Testando Groq API...');
+          response = await testGroqApiKey(request.apiKey);
+          break;
+          
+        default:
+          console.warn('⚠️ Ação não reconhecida:', request.action);
+          response = { 
+            success: false, 
+            error: `Ação não reconhecida: ${request.action}` 
+          };
       }
-    };
-
-    console.log('✅ Serviços de API inicializados (inline)');
-    return true;
-  } catch (error) {
-    console.error('❌ Erro ao carregar serviços de API:', error);
-    return false;
-  }
-}
-
-// Função auxiliar para obter configuração
-async function getStoredConfiguration() {
-  try {
-    const result = await chrome.storage.sync.get(['veritasConfig']);
-    return result.veritasConfig || DEFAULT_CONFIG;
-  } catch (error) {
-    console.warn('⚠️ Erro ao obter configuração:', error);
-    return DEFAULT_CONFIG;
-  }
-}
-
-/**
- * Configura listeners de mensagens
- */
-function setupMessageListeners() {
-  console.log('📡 Configurando listeners de mensagens...');
+      
+      console.log('📤 Enviando resposta:', response);
+      sendResponse(response);
+      
+    } catch (error) {
+      console.error('❌ Erro no background script:', error);
+      sendResponse({ 
+        success: false, 
+        error: error.message 
+      });
+    }
+  })();
   
-  chrome.runtime.onMessage.addListener((request, _, sendResponse) => {
-    console.log('📨 Mensagem recebida:', request.action, request);
-    
-    // Processar mensagem de forma assíncrona
-    (async () => {
-      try {
-        let response;
-        
-        switch (request.action) {
-          case 'getConfiguration':
-          case 'getSettings': // Alias para compatibilidade
-            response = await handleGetConfiguration(request);
-            break;
-
-          case 'saveConfiguration':
-          case 'updateSettings': // Alias para compatibilidade
-            response = await handleSaveConfiguration(request);
-            break;
-
-          case 'testApiKey':
-            response = await handleTestApiKey(request);
-            break;
-
-          case 'verifyText':
-            response = await handleVerifyText(request);
-            break;
-
-          case 'getStats':
-            response = await handleGetStats(request);
-            break;
-
-          case 'clearCache':
-            response = await handleClearCache(request);
-            break;
-            
-          default:
-            response = {
-              success: false,
-              error: `Ação não reconhecida: ${request.action}`,
-              timestamp: Date.now()
-            };
-        }
-        
-        console.log('📤 Enviando resposta para', request.action, ':', response);
-        sendResponse(response);
-        
-      } catch (error) {
-        console.error('❌ Erro no processamento:', error);
-        sendResponse({
-          success: false,
-          error: error.message,
-          timestamp: Date.now()
-        });
-      }
-    })();
-    
-    // Retornar true para resposta assíncrona
-    return true;
-  });
-}
-
-/**
- * Configura listeners de eventos
- */
-function setupEventListeners() {
-  console.log('🔧 Configurando event listeners...');
-  
-  // Instalação da extensão
-  chrome.runtime.onInstalled.addListener((details) => {
-    console.log('🔧 Extensão instalada/atualizada:', details.reason);
-  });
-  
-  // Startup da extensão
-  chrome.runtime.onStartup.addListener(() => {
-    console.log('🚀 Service worker iniciado');
-  });
-}
+  return true; // Manter canal aberto para resposta assíncrona
+});
 
 /**
  * Manipula obtenção de configuração
  */
 async function handleGetConfiguration() {
   try {
-    console.log('📋 Obtendo configuração...');
-    
     const result = await chrome.storage.sync.get(['veritasConfig']);
     const config = result.veritasConfig || DEFAULT_CONFIG;
     
     return {
       success: true,
-      data: config,
-      timestamp: Date.now()
+      config: config,
+      hasGroqKey: !!(config.groqApiKey && config.groqApiKey.length > 20)
     };
-    
   } catch (error) {
     console.error('❌ Erro ao obter configuração:', error);
     return {
       success: false,
       error: error.message,
-      timestamp: Date.now()
+      config: DEFAULT_CONFIG
     };
   }
 }
@@ -236,136 +100,190 @@ async function handleGetConfiguration() {
 /**
  * Manipula salvamento de configuração
  */
-async function handleSaveConfiguration(request) {
+async function handleSaveConfiguration(newConfig) {
   try {
-    console.log('💾 Salvando configuração...');
-
-    // Aceitar tanto 'config' quanto 'settings' para compatibilidade
-    const config = request.config || request.settings;
-    if (!config) {
-      throw new Error('Configuração é obrigatória');
-    }
-
-    // Se for uma atualização parcial, mesclar com configuração existente
-    if (request.settings) {
-      const result = await chrome.storage.sync.get(['veritasConfig']);
-      const existingConfig = result.veritasConfig || DEFAULT_CONFIG;
-      const mergedConfig = { ...existingConfig, ...config };
-      await chrome.storage.sync.set({ veritasConfig: mergedConfig });
-
-      console.log('🔄 Configuração atualizada:', mergedConfig);
-    } else {
-      await chrome.storage.sync.set({ veritasConfig: config });
-      console.log('💾 Configuração salva:', config);
-    }
+    const configToSave = { ...DEFAULT_CONFIG, ...newConfig };
+    
+    await chrome.storage.sync.set({ veritasConfig: configToSave });
+    
+    console.log('✅ Configuração salva:', configToSave);
     
     return {
       success: true,
-      message: 'Configuração salva com sucesso',
-      timestamp: Date.now()
+      config: configToSave,
+      message: 'Configuração salva com sucesso'
     };
-    
   } catch (error) {
     console.error('❌ Erro ao salvar configuração:', error);
     return {
       success: false,
-      error: error.message,
-      timestamp: Date.now()
+      error: error.message
     };
   }
 }
 
 /**
- * Manipula teste de API key
+ * Manipula verificação de texto usando apenas Groq AI
  */
-async function handleTestApiKey(request) {
+async function handleVerifyTextWithGroq(request) {
+  const startTime = Date.now();
+  const text = request.text;
+  
+  console.log('🔍 Iniciando verificação com Groq AI:', text.substring(0, 100) + '...');
+  
   try {
-    console.log('🧪 Testando API key...');
-
-    const { apiType, apiKey } = request;
-
-    if (!apiType || !apiKey) {
-      throw new Error('Tipo de API e chave são obrigatórios');
+    // Obter configuração
+    const configResult = await chrome.storage.sync.get(['veritasConfig']);
+    const config = configResult.veritasConfig || DEFAULT_CONFIG;
+    const groqApiKey = config.groqApiKey;
+    
+    console.log('🔑 Configuração carregada:', { 
+      hasConfig: !!config, 
+      hasGroqKey: !!(groqApiKey && groqApiKey.length > 20)
+    });
+    
+    if (!groqApiKey || groqApiKey.trim() === '') {
+      return {
+        success: false,
+        error: 'Groq API Key não configurada',
+        data: {
+          classification: 'erro',
+          confidence: 0.0,
+          summary: 'Configure sua Groq API Key nas opções da extensão para usar a verificação de fatos.',
+          sources: ['VeritasAI (Configuração)'],
+          details: {
+            strategy: 'no-api-key',
+            processingTime: Date.now() - startTime,
+            note: 'Groq API Key necessária para verificação'
+          }
+        }
+      };
     }
 
-    // Verificar se serviços estão inicializados
-    if (!apiServices) {
-      const initialized = await initializeApiServices();
-      if (!initialized) {
-        throw new Error('Falha na inicialização dos serviços de API');
-      }
+    console.log('🤖 Fazendo requisição para Groq API...');
+    
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${groqApiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'llama-3.1-70b-versatile',
+        messages: [
+          {
+            role: 'system',
+            content: `Você é um especialista em verificação de fatos. Analise o texto fornecido e determine:
+1. Se é uma afirmação factual verificável
+2. Sua veracidade baseada em conhecimento geral
+3. Nível de confiança na análise
+
+Responda APENAS em formato JSON:
+{
+  "classification": "confiável|inconclusiva|sem fundamento",
+  "confidence": 0.0-1.0,
+  "summary": "Explicação detalhada da análise",
+  "reasoning": "Justificativa da classificação"
+}`
+          },
+          {
+            role: 'user',
+            content: `Analise este texto: "${text}"`
+          }
+        ],
+        temperature: 0.3,
+        max_tokens: 500
+      })
+    });
+
+    // Tratamento específico para erro 429 (Rate Limit)
+    if (response.status === 429) {
+      console.warn('⚠️ Groq API: Limite de requisições atingido (429)');
+      
+      return {
+        success: true,
+        data: {
+          classification: 'inconclusiva',
+          confidence: 0.3,
+          summary: 'Limite diário de verificações atingido. Os créditos da API Groq serão renovados automaticamente amanhã. Tente novamente em algumas horas.',
+          sources: ['VeritasAI (Limite Atingido)'],
+          details: {
+            strategy: 'groq-rate-limited',
+            processingTime: Date.now() - startTime,
+            error: 'Rate limit exceeded (429)',
+            note: 'Créditos diários esgotados. Renovação automática amanhã.'
+          }
+        }
+      };
     }
 
-    // Testar conectividade usando serviços reais
-    const testResult = await apiServices.testApiConnectivity(apiType, apiKey);
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      console.error('❌ Erro da Groq API:', errorData);
+      throw new Error(`Groq API Error: ${response.status} - ${response.statusText}`);
+    }
 
-    console.log(`${testResult.success ? '✅' : '❌'} Teste ${apiType}:`, testResult.message || testResult.error);
+    const data = await response.json();
+    const aiResponse = data.choices[0]?.message?.content;
+
+    if (!aiResponse) {
+      throw new Error('Resposta vazia do Groq');
+    }
+
+    console.log('📊 Resposta da Groq recebida:', aiResponse.substring(0, 100) + '...');
+
+    // Tentar parsear resposta JSON
+    let analysis;
+    try {
+      analysis = JSON.parse(aiResponse);
+    } catch (parseError) {
+      console.warn('⚠️ Erro ao parsear resposta do Groq, usando fallback');
+      analysis = {
+        classification: 'inconclusiva',
+        confidence: 0.4,
+        summary: aiResponse.substring(0, 200) + '...',
+        reasoning: 'Análise baseada em IA'
+      };
+    }
 
     return {
       success: true,
       data: {
-        valid: testResult.success,
-        message: testResult.message || testResult.error,
-        responseTime: testResult.responseTime,
-        timestamp: Date.now()
+        classification: analysis.classification || 'inconclusiva',
+        confidence: Math.min(0.9, analysis.confidence || 0.4),
+        summary: analysis.summary || 'Análise realizada por IA',
+        sources: ['Groq AI (Llama 3.1)'],
+        details: {
+          strategy: 'groq-ai',
+          processingTime: Date.now() - startTime,
+          reasoning: analysis.reasoning,
+          note: 'Análise realizada por inteligência artificial'
+        }
       }
-    };
-
-  } catch (error) {
-    console.error('❌ Erro no teste de API:', error);
-    return {
-      success: false,
-      error: error.message,
-      timestamp: Date.now()
-    };
-  }
-}
-
-/**
- * Manipula verificação de texto
- */
-async function handleVerifyText(request) {
-  try {
-    console.log('🔍 Verificando texto...');
-
-    // Verificar se serviços estão inicializados
-    if (!apiServices) {
-      console.log('🔄 Inicializando serviços de API...');
-      const initialized = await initializeApiServices();
-      if (!initialized) {
-        throw new Error('Falha na inicialização dos serviços de API');
-      }
-    }
-
-    // Extrair dados da requisição
-    const { text, options = {} } = request.data || request;
-
-    if (!text) {
-      throw new Error('Texto não fornecido para verificação');
-    }
-
-    console.log('📝 Texto para verificação:', text.substring(0, 100) + '...');
-
-    // Executar verificação usando serviços reais
-    const result = await apiServices.verifyFacts(text, {
-      strategy: options.strategy || 'hybrid',
-      maxResults: options.maxResults || 5,
-      languageCode: options.languageCode || 'pt-BR',
-      confidenceThreshold: options.confidenceThreshold || 0.6,
-      ...options
-    });
-
-    console.log('✅ Verificação concluída:', result.success ? result.data.classification : 'erro');
-
-    return {
-      success: result.success,
-      data: result.data,
-      responseTime: result.responseTime,
-      timestamp: result.timestamp || Date.now()
     };
 
   } catch (error) {
     console.error('❌ Erro na verificação:', error);
+    
+    // Verificar se é erro de rate limit não capturado
+    if (error.message.includes('429') || error.message.includes('rate limit')) {
+      return {
+        success: true,
+        data: {
+          classification: 'inconclusiva',
+          confidence: 0.3,
+          summary: 'Limite de uso da API atingido. Tente novamente amanhã quando os créditos forem renovados.',
+          sources: ['VeritasAI (Limite Atingido)'],
+          details: {
+            strategy: 'groq-rate-limited',
+            processingTime: Date.now() - startTime,
+            error: error.message,
+            note: 'Créditos diários da API Groq esgotados'
+          }
+        }
+      };
+    }
+
     return {
       success: false,
       error: error.message,
@@ -373,248 +291,96 @@ async function handleVerifyText(request) {
         classification: 'erro',
         confidence: 0.0,
         summary: `Erro na verificação: ${error.message}`,
-        sources: ['Sistema'],
+        sources: ['VeritasAI (Erro)'],
         details: {
-          error: error.message
+          strategy: 'groq-error',
+          processingTime: Date.now() - startTime,
+          error: error.message,
+          note: 'Erro ao conectar com a API Groq'
         }
+      }
+    };
+  }
+}
+
+/**
+ * Testa se a API Key do Groq é válida
+ */
+async function testGroqApiKey(apiKey) {
+  console.log('🧪 Testando Groq API Key:', apiKey?.substring(0, 10) + '...');
+
+  if (!apiKey || apiKey.trim() === '') {
+    return {
+      success: false,
+      error: 'API Key não fornecida',
+      details: 'Por favor, insira uma Groq API Key válida'
+    };
+  }
+
+  try {
+    // Fazer uma requisição simples para testar a API Key
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
       },
-      timestamp: Date.now()
-    };
-  }
-}
-
-/**
- * Manipula obtenção de estatísticas
- */
-async function handleGetStats() {
-  try {
-    console.log('📊 Obtendo estatísticas...');
-
-    let serviceStats = {};
-
-    // Obter estatísticas dos serviços se disponíveis
-    if (apiServices) {
-      try {
-        serviceStats = apiServices.getServiceStats();
-      } catch (error) {
-        console.warn('⚠️ Erro ao obter estatísticas dos serviços:', error);
-      }
-    }
-
-    return {
-      success: true,
-      data: {
-        background: {
-          uptime: Date.now() - startTime,
-          initialized: isInitialized,
-          servicesLoaded: !!apiServices
-        },
-        services: serviceStats,
-        timestamp: Date.now()
-      }
-    };
-
-  } catch (error) {
-    console.error('❌ Erro ao obter estatísticas:', error);
-    return {
-      success: false,
-      error: error.message,
-      timestamp: Date.now()
-    };
-  }
-}
-
-/**
- * Manipula limpeza de cache
- */
-async function handleClearCache() {
-  try {
-    console.log('🧹 Limpando cache...');
-    
-    // Implementação básica
-    await chrome.storage.local.clear();
-    
-    return {
-      success: true,
-      message: 'Cache limpo com sucesso',
-      timestamp: Date.now()
-    };
-    
-  } catch (error) {
-    console.error('❌ Erro ao limpar cache:', error);
-    return {
-      success: false,
-      error: error.message,
-      timestamp: Date.now()
-    };
-  }
-}
-
-/**
- * Inicialização do service worker
- */
-async function initializeService() {
-  try {
-    console.log('🔧 Inicializando serviços de API...');
-
-    // Inicializar serviços de API
-    await initializeApiServices();
-
-    isInitialized = true;
-    console.log('✅ Background Service inicializado com sucesso');
-
-  } catch (error) {
-    console.error('❌ Erro na inicialização:', error);
-    isInitialized = false;
-  }
-}
-
-// Configurar listeners imediatamente (crítico para Manifest V3)
-console.log('🔧 Configurando listeners...');
-
-// Configurar listener de mensagens IMEDIATAMENTE
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  console.log('📨 Mensagem recebida:', request.action, request);
-
-  // Processar de forma assíncrona
-  (async () => {
-    try {
-      let response;
-
-      switch (request.action) {
-        case 'getConfiguration':
-        case 'getSettings':
-          console.log('📋 Processando getConfiguration...');
-          const result = await chrome.storage.sync.get(['veritasConfig']);
-          const config = result.veritasConfig || {
-            enabled: true,
-            autoVerify: false,
-            apiTimeout: 30,
-            cacheEnabled: true,
-            debugMode: false,
-            googleApiKey: '',
-            groqApiKey: '',
-            theme: 'auto',
-            notificationsEnabled: true,
-            soundEnabled: true,
-            maxTextLength: 5000,
-            verboseLogging: false,
-            version: '1.0.17'
-          };
-          response = { success: true, data: config };
-          break;
-
-        case 'saveConfiguration':
-        case 'updateSettings':
-          console.log('💾 Processando saveConfiguration...');
-          await chrome.storage.sync.set({ veritasConfig: request.config || request.data });
-          response = { success: true, message: 'Configuração salva' };
-          break;
-
-        case 'verifyText':
-          console.log('🔍 Processando verifyText...');
-
-          // Usar integração real com APIs
-          try {
-            console.log('🔄 Inicializando serviços de APIs...');
-
-            // Obter configuração atual
-            const configResult = await chrome.storage.sync.get(['veritasConfig']);
-            const config = configResult.veritasConfig || {};
-            console.log('📋 Configuração carregada:', {
-              hasGoogleKey: !!(config.googleApiKey && config.googleApiKey.length > 20),
-              hasGroqKey: !!(config.groqApiKey && config.groqApiKey.length > 20)
-            });
-
-            // Inicializar serviços
-            console.log('🔧 Inicializando serviços de API...');
-            await initializeServices(config);
-
-            // Executar verificação real
-            const text = request.data?.text || request.text || '';
-            const options = request.data?.options || request.options || {};
-
-            console.log('🔍 Executando verificação com APIs...');
-            const result = await verifyFacts(text, options);
-
-            response = result;
-
-          } catch (error) {
-            console.error('❌ Erro na verificação com APIs:', error.message);
-
-            response = {
-              success: false,
-              error: `Falha na verificação: ${error.message}`,
-              data: {
-                classification: 'erro',
-                confidence: 0.0,
-                summary: `Erro na verificação: ${error.message}. Verifique suas chaves de API.`,
-                sources: ['Sistema'],
-                details: {
-                  error: error.message,
-                  timestamp: Date.now()
-                }
-              },
-              timestamp: Date.now()
-            };
+      body: JSON.stringify({
+        model: 'llama-3.1-70b-versatile',
+        messages: [
+          {
+            role: 'user',
+            content: 'Teste de conectividade. Responda apenas "OK".'
           }
-          break;
+        ],
+        max_tokens: 10
+      })
+    });
 
-        case 'testApiKey':
-          console.log('🧪 Processando testApiKey...');
-          const apiKey = request.apiKey;
-          response = {
-            success: true,
-            data: {
-              valid: apiKey && apiKey.length > 10,
-              message: apiKey && apiKey.length > 10 ? 'API key válida' : 'API key inválida',
-              responseTime: 100
-            }
-          };
-          break;
+    if (response.ok) {
+      const data = await response.json();
+      return {
+        success: true,
+        message: 'Groq API Key válida e funcionando!',
+        details: `Teste realizado com sucesso. Modelo: ${data.model || 'llama-3.1-70b-versatile'}`
+      };
+    } else if (response.status === 429) {
+      return {
+        success: false,
+        error: 'Rate limit atingido',
+        details: 'API Key válida, mas limite de requisições atingido. Tente novamente mais tarde.'
+      };
+    } else {
+      const errorData = await response.json().catch(() => null);
 
-        case 'getStats':
-          console.log('📊 Processando getStats...');
-          response = {
-            success: true,
-            data: {
-              background: { uptime: Date.now() - startTime, initialized: true },
-              services: { totalRequests: 0, successfulRequests: 0, servicesInitialized: true }
-            }
-          };
-          break;
-
-        default:
-          response = {
-            success: false,
-            error: `Ação não reconhecida: ${request.action}`,
-            timestamp: Date.now()
-          };
+      if (response.status === 401) {
+        return {
+          success: false,
+          error: 'API Key inválida',
+          details: 'Verifique se a Groq API Key está correta'
+        };
       }
 
-      console.log('📤 Enviando resposta para', request.action, ':', response);
-      sendResponse(response);
-
-    } catch (error) {
-      console.error('❌ Erro no processamento de', request.action, ':', error);
-      sendResponse({
+      return {
         success: false,
-        error: error.message,
-        timestamp: Date.now()
-      });
+        error: `Erro HTTP ${response.status}`,
+        details: errorData?.error?.message || response.statusText
+      };
     }
-  })();
 
-  return true; // Manter canal aberto para resposta assíncrona
-});
+  } catch (error) {
+    console.error('❌ Erro no teste da Groq API:', error);
+    return {
+      success: false,
+      error: 'Erro de conexão',
+      details: error.message
+    };
+  }
+}
 
-// Configurar outros listeners
+// Listeners de instalação e inicialização
 chrome.runtime.onInstalled.addListener((details) => {
   console.log('🎉 Extensão instalada/atualizada:', details.reason);
 });
 
-chrome.runtime.onStartup.addListener(() => {
-  console.log('🚀 Chrome iniciado, service worker ativo');
-});
-
-console.log('✅ Background Service carregado e listeners ativos');
+console.log('✅ Background Service carregado e listeners ativos (Groq Only)');

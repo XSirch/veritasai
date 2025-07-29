@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "VeritasAI - Verificador de Informações",
   "version": "1.0.21",
-  "description": "Extensão para verificação automática de confiabilidade de informações usando IA e fact-checking",
+  "description": "Extensão para verificação automática de confiabilidade de informações usando Groq AI",
   
   "permissions": [
     "storage",
@@ -13,9 +13,7 @@
   ],
   
   "host_permissions": [
-    "https://factchecktools.googleapis.com/*",
-    "https://api.groq.com/*",
-    "http://localhost:6333/*"
+    "https://api.groq.com/*"
   ],
   
   "optional_permissions": [

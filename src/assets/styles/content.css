@@ -331,3 +331,68 @@
     display: none !important;
   }
 }
+
+/* Loading Indicator */
+#veritas-loading {
+  all: initial;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  box-sizing: border-box;
+  direction: ltr;
+  text-align: left;
+  position: fixed;
+  z-index: 2147483647;
+  pointer-events: none;
+}
+
+.veritas-loading {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 12px 16px;
+  backdrop-filter: blur(10px);
+  animation: veritasLoadingFadeIn 0.3s ease-out;
+}
+
+.veritas-loading-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+.veritas-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #e0e0e0;
+  border-top: 2px solid #2196F3;
+  border-radius: 50%;
+  animation: veritasSpinnerRotate 1s linear infinite;
+}
+
+.veritas-loading-text {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+}
+
+/* Animações para loading */
+@keyframes veritasLoadingFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes veritasSpinnerRotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
