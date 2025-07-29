@@ -8,7 +8,7 @@ class PopupManager {
     this.config = {
       apiTimeout: 10000,
       saveDelay: 1000,
-      toastDuration: 3000
+      toastDuration: 5000 // Aumentado para 5 segundos
     };
     
     this.elements = {};
@@ -80,7 +80,7 @@ class PopupManager {
     this.elements.testButtons = document.querySelectorAll('.test-api');
 
     // Verificar elementos críticos
-    const criticalElements = ['loadingOverlay', 'loadingText', 'apiStatus'];
+    const criticalElements = ['loadingOverlay', 'loadingText', 'apiStatus', 'saveBtn', 'groqApiKey'];
     criticalElements.forEach(elementName => {
       if (!this.elements[elementName]) {
         console.error(`❌ Elemento crítico não encontrado: ${elementName}`);
@@ -153,9 +153,19 @@ class PopupManager {
     // Action buttons
     if (this.elements.resetBtn) {
       this.elements.resetBtn.addEventListener('click', this.resetConfiguration.bind(this));
+      console.log('✅ Listener do botão Reset adicionado');
+    } else {
+      console.error('❌ Botão Reset não encontrado');
     }
+
     if (this.elements.saveBtn) {
-      this.elements.saveBtn.addEventListener('click', () => this.saveConfiguration(true));
+      this.elements.saveBtn.addEventListener('click', () => {
+        console.log('🖱️ Botão Salvar clicado!');
+        this.saveConfiguration(true);
+      });
+      console.log('✅ Listener do botão Salvar adicionado');
+    } else {
+      console.error('❌ Botão Salvar não encontrado');
     }
     
     // Keyboard shortcuts
@@ -417,16 +427,33 @@ class PopupManager {
    */
   showToast(message, type = 'info') {
     if (!this.elements.toastContainer) return;
-    
+
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     toast.textContent = message;
-    
+
+    // Adicionar ao container
     this.elements.toastContainer.appendChild(toast);
-    
+
+    // Forçar reflow para animação
+    toast.offsetHeight;
+
+    // Adicionar classe show para animação
+    toast.classList.add('show');
+
+    // Remover após duração especificada
     setTimeout(() => {
       if (toast.parentNode) {
-        toast.parentNode.removeChild(toast);
+        // Animação de saída
+        toast.style.transform = 'translateX(100%)';
+        toast.style.opacity = '0';
+
+        // Remover do DOM após animação
+        setTimeout(() => {
+          if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+          }
+        }, 300);
       }
     }, this.config.toastDuration);
   }
@@ -627,12 +654,17 @@ class PopupManager {
   }
   
   async saveConfiguration(showFeedback = true) {
+    console.log('💾 saveConfiguration chamada, showFeedback:', showFeedback);
+
     try {
       if (showFeedback) {
         this.showLoading('Salvando configurações...');
       }
 
       // Coletar dados do formulário - apenas Groq
+      console.log('📝 Coletando dados do formulário...');
+      console.log('🔑 Groq API Key atual:', this.elements.groqApiKey?.value?.substring(0, 10) + '...');
+
       const config = {
         groqApiKey: this.elements.groqApiKey?.value?.trim() || '',
         groqModel: this.elements.groqModelSelect?.value || 'llama3-70b-8192',
@@ -659,6 +691,10 @@ class PopupManager {
       // Verificar se foi salvo corretamente
       const verification = await chrome.storage.sync.get(['veritasConfig']);
       console.log('🔍 Verificação do storage:', verification);
+
+      // Atualizar configuração atual com os dados salvos
+      this.currentConfig = { ...config };
+      console.log('✅ Configuração atual atualizada:', this.currentConfig);
 
       // Limpar timer de auto-save
       if (this.saveTimer) {
