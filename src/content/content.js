@@ -319,7 +319,16 @@ class EventManager {
         this.state.lastSelection = selectionData;
 
         // Verificar se verificação automática está habilitada
-        const autoVerifyEnabled = extensionState.settings?.autoVerify || VERITAS_CONFIG.AUTO_VERIFY;
+        // Usar configuração do usuário se disponível, senão usar padrão
+        let autoVerifyEnabled = false;
+
+        if (extensionState.settings && typeof extensionState.settings.autoVerify === 'boolean') {
+          // Usar configuração explícita do usuário
+          autoVerifyEnabled = extensionState.settings.autoVerify;
+        } else {
+          // Fallback para configuração padrão
+          autoVerifyEnabled = VERITAS_CONFIG.AUTO_VERIFY;
+        }
 
         console.log('🔍 Texto selecionado:', {
           text: selectedText.substring(0, 50) + '...',
@@ -329,8 +338,9 @@ class EventManager {
 
         console.log('🔧 Debug autoVerify:', {
           'extensionState.settings?.autoVerify': extensionState.settings?.autoVerify,
+          'typeof autoVerify': typeof extensionState.settings?.autoVerify,
           'VERITAS_CONFIG.AUTO_VERIFY': VERITAS_CONFIG.AUTO_VERIFY,
-          'autoVerifyEnabled': autoVerifyEnabled,
+          'autoVerifyEnabled (final)': autoVerifyEnabled,
           'extensionState.settings completo': extensionState.settings
         });
 
