@@ -51,6 +51,7 @@ class TextDetector {
     return {
       text: text,
       originalText: selection.toString(),
+      range: range, // Adicionar range para compatibilidade
       rect: rect,
       position: { x: rect.left, y: rect.bottom + 10 },
       context: this.extractContext(range),
@@ -199,7 +200,18 @@ class UIManager {
     `;
 
     // Posicionar próximo ao texto selecionado
-    const rect = selectionData.range.getBoundingClientRect();
+    let rect;
+
+    // Tentar obter rect do range ou usar fallback
+    if (selectionData.range) {
+      rect = selectionData.range.getBoundingClientRect();
+    } else if (selectionData.rect) {
+      rect = selectionData.rect;
+    } else {
+      console.warn('⚠️ Nem range nem rect disponíveis, usando posição padrão');
+      rect = { left: 100, bottom: 100 };
+    }
+
     loadingDiv.style.position = 'fixed';
     loadingDiv.style.left = `${rect.left + window.scrollX}px`;
     loadingDiv.style.top = `${rect.bottom + window.scrollY + 5}px`;
