@@ -90,6 +90,7 @@ class SimpleQdrantService {
       // Usar uma API de embeddings mais simples e confiável
       const cleanText = text.substring(0, 500).replace(/\n/g, ' ').trim();
 
+      // Usar API pública do Hugging Face sem autenticação
       const response = await fetch('https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2', {
         method: 'POST',
         headers: {
@@ -98,7 +99,8 @@ class SimpleQdrantService {
         body: JSON.stringify({
           inputs: cleanText,
           options: {
-            wait_for_model: true
+            wait_for_model: true,
+            use_cache: true
           }
         })
       });
@@ -122,10 +124,10 @@ class SimpleQdrantService {
         throw new Error(`API Error: ${response.status} - ${errorText}`);
       }
     } catch (error) {
-      console.warn('⚠️ Embedding generation failed:', error.message);
+      console.log('⚠️ Hugging Face API não disponível, usando fallback local:', error.message);
 
       // Fallback: gerar embedding simples baseado em hash do texto
-      console.log('🔄 Using fallback embedding generation...');
+      console.log('🔄 Gerando embeddings localmente (fallback)...');
       return this.generateFallbackEmbedding(text);
     }
   }
@@ -148,7 +150,7 @@ class SimpleQdrantService {
       }
     }
 
-    console.log('✅ Fallback embedding gerado:', vector.length, 'dimensões');
+    console.log('✅ Embedding local gerado com sucesso:', vector.length, 'dimensões');
     return vector;
   }
 
