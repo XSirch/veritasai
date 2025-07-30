@@ -5,12 +5,36 @@
 
 console.log('🚀 VeritasAI Content Script iniciando...');
 
+// Função para carregar CSS
+function loadCSS() {
+  // Verificar se o CSS já foi carregado
+  if (document.getElementById('veritas-tooltip-css')) {
+    return;
+  }
+
+  const cssLink = document.createElement('link');
+  cssLink.id = 'veritas-tooltip-css';
+  cssLink.rel = 'stylesheet';
+  cssLink.type = 'text/css';
+  cssLink.href = chrome.runtime.getURL('assets/styles/tooltip.css');
+  document.head.appendChild(cssLink);
+
+  const contentCssLink = document.createElement('link');
+  contentCssLink.id = 'veritas-content-css';
+  contentCssLink.rel = 'stylesheet';
+  contentCssLink.type = 'text/css';
+  contentCssLink.href = chrome.runtime.getURL('assets/styles/content.css');
+  document.head.appendChild(contentCssLink);
+
+  console.log('📄 CSS carregado:', cssLink.href, contentCssLink.href);
+}
+
 // Configuração global
 const VERITAS_CONFIG = {
   MIN_TEXT_LENGTH: 10,
   MAX_TEXT_LENGTH: 5000,
   TOOLTIP_DELAY: 100,
-  AUTO_HIDE_DELAY: 5000,
+  AUTO_HIDE_DELAY: 12000, // 12 segundos para dar tempo de ler
   DEBOUNCE_DELAY: 300,
   Z_INDEX_BASE: 10000,
   AUTO_VERIFY: false
@@ -48,17 +72,25 @@ class TextDetector {
     const range = selection.getRangeAt(0);
     const rect = range.getBoundingClientRect();
 
+    // Store both range and rect for smart positioning
     return {
       text: text,
       originalText: selection.toString(),
-      range: range, // Adicionar range para compatibilidade
-      rect: rect,
-      position: { x: rect.left, y: rect.bottom + 10 },
+      range: range, // Current range for positioning
+      rect: rect, // Current rect for positioning
+      position: { x: rect.left, y: rect.bottom + 10 }, // Legacy position (will be overridden by smart positioning)
       context: this.extractContext(range),
       contentType: this.detectContentType(text),
       timestamp: Date.now(),
       url: window.location.href,
-      domain: window.location.hostname
+      domain: window.location.hostname,
+      // Additional data for smart positioning
+      viewport: {
+        width: window.innerWidth,
+        height: window.innerHeight,
+        scrollX: window.scrollX,
+        scrollY: window.scrollY
+      }
     };
   }
 
@@ -91,12 +123,21 @@ class UIManager {
     this.hideAllElements();
 
     const button = this.createVerifyButton(selectionData);
-    this.positionElement(button, selectionData.position);
+
+    // Calculate smart position for button (small element)
+    const buttonPosition = this.calculateSmartPosition(selectionData, 120, 40, {
+      preferredPosition: 'below',
+      offset: 8,
+      margin: 10
+    });
+
+    this.positionElement(button, buttonPosition);
 
     document.body.appendChild(button);
     this.state.currentButton = button;
 
     console.log('👆 Botão de verificação mostrado para:', selectionData.text.substring(0, 50) + '...');
+    console.log('📍 Posição do botão:', buttonPosition);
 
     // Teste do event listener após 1 segundo
     setTimeout(() => {
@@ -162,7 +203,154 @@ class UIManager {
     return button;
   }
 
+  /**
+   * Smart positioning utility that handles viewport boundaries
+   * @param {HTMLElement} element - Element to position
+   * @param {Object} selectionData - Selection data with rect/range info
+   * @param {Object} options - Positioning options
+   */
+  calculateSmartPosition(selectionData, elementWidth = 300, elementHeight = 200, options = {}) {
+    const {
+      preferredPosition = 'below', // 'below', 'above', 'right', 'left'
+      offset = 10,
+      margin = 20 // Minimum margin from viewport edges
+    } = options;
+
+    // Get selection rectangle
+    let rect;
+    if (selectionData.range) {
+      rect = selectionData.range.getBoundingClientRect();
+    } else if (selectionData.rect) {
+      rect = selectionData.rect;
+    } else {
+      console.warn('⚠️ No rect available, using fallback position');
+      return { x: 100, y: 100, position: 'fallback' };
+    }
+
+    // Get viewport dimensions
+    const viewport = {
+      width: window.innerWidth,
+      height: window.innerHeight,
+      scrollX: window.scrollX,
+      scrollY: window.scrollY
+    };
+
+    // Calculate absolute position of selection
+    const selectionAbsolute = {
+      left: rect.left + viewport.scrollX,
+      right: rect.right + viewport.scrollX,
+      top: rect.top + viewport.scrollY,
+      bottom: rect.bottom + viewport.scrollY,
+      width: rect.width,
+      height: rect.height,
+      centerX: rect.left + viewport.scrollX + (rect.width / 2),
+      centerY: rect.top + viewport.scrollY + (rect.height / 2)
+    };
+
+    // Try different positions in order of preference
+    const positions = this.getPositionPriority(preferredPosition);
+
+    for (const pos of positions) {
+      const calculated = this.calculatePosition(pos, selectionAbsolute, elementWidth, elementHeight, offset);
+
+      // Check if position fits in viewport
+      if (this.isPositionValid(calculated, elementWidth, elementHeight, viewport, margin)) {
+        console.log(`✅ Posição escolhida: ${pos}`, calculated);
+        return { ...calculated, position: pos };
+      }
+    }
+
+    // Fallback: center on selection with adjustments to fit viewport
+    const fallback = this.calculateFallbackPosition(selectionAbsolute, elementWidth, elementHeight, viewport, margin);
+    console.log('⚠️ Usando posição fallback:', fallback);
+    return { ...fallback, position: 'fallback' };
+  }
+
+  getPositionPriority(preferred) {
+    const all = ['below', 'above', 'right', 'left'];
+    const priority = [preferred];
+
+    // Add remaining positions
+    all.forEach(pos => {
+      if (pos !== preferred) priority.push(pos);
+    });
+
+    return priority;
+  }
+
+  calculatePosition(position, selection, width, height, offset) {
+    switch (position) {
+      case 'below':
+        return {
+          x: selection.centerX - (width / 2),
+          y: selection.bottom + offset
+        };
+      case 'above':
+        return {
+          x: selection.centerX - (width / 2),
+          y: selection.top - height - offset
+        };
+      case 'right':
+        return {
+          x: selection.right + offset,
+          y: selection.centerY - (height / 2)
+        };
+      case 'left':
+        return {
+          x: selection.left - width - offset,
+          y: selection.centerY - (height / 2)
+        };
+      default:
+        return {
+          x: selection.centerX - (width / 2),
+          y: selection.bottom + offset
+        };
+    }
+  }
+
+  isPositionValid(pos, width, height, viewport, margin) {
+    const elementBounds = {
+      left: pos.x,
+      right: pos.x + width,
+      top: pos.y,
+      bottom: pos.y + height
+    };
+
+    // Check if element fits within viewport with margin
+    return (
+      elementBounds.left >= viewport.scrollX + margin &&
+      elementBounds.right <= viewport.scrollX + viewport.width - margin &&
+      elementBounds.top >= viewport.scrollY + margin &&
+      elementBounds.bottom <= viewport.scrollY + viewport.height - margin
+    );
+  }
+
+  calculateFallbackPosition(selection, width, height, viewport, margin) {
+    let x = selection.centerX - (width / 2);
+    let y = selection.bottom + 10;
+
+    // Adjust X to fit viewport
+    if (x < viewport.scrollX + margin) {
+      x = viewport.scrollX + margin;
+    } else if (x + width > viewport.scrollX + viewport.width - margin) {
+      x = viewport.scrollX + viewport.width - width - margin;
+    }
+
+    // Adjust Y to fit viewport
+    if (y + height > viewport.scrollY + viewport.height - margin) {
+      // Try above selection
+      y = selection.top - height - 10;
+      if (y < viewport.scrollY + margin) {
+        // If still doesn't fit, position at top of viewport
+        y = viewport.scrollY + margin;
+      }
+    }
+
+    return { x, y };
+  }
+
   positionElement(element, position) {
+    element.style.position = 'absolute';
     element.style.left = position.x + 'px';
     element.style.top = position.y + 'px';
   }
@@ -199,23 +387,19 @@ class UIManager {
       </div>
     `;
 
-    // Posicionar próximo ao texto selecionado
-    let rect;
+    // Calculate smart position for loading indicator
+    const loadingPosition = this.calculateSmartPosition(selectionData, 200, 60, {
+      preferredPosition: 'below',
+      offset: 5,
+      margin: 15
+    });
 
-    // Tentar obter rect do range ou usar fallback
-    if (selectionData.range) {
-      rect = selectionData.range.getBoundingClientRect();
-    } else if (selectionData.rect) {
-      rect = selectionData.rect;
-    } else {
-      console.warn('⚠️ Nem range nem rect disponíveis, usando posição padrão');
-      rect = { left: 100, bottom: 100 };
-    }
-
-    loadingDiv.style.position = 'fixed';
-    loadingDiv.style.left = `${rect.left + window.scrollX}px`;
-    loadingDiv.style.top = `${rect.bottom + window.scrollY + 5}px`;
+    loadingDiv.style.position = 'absolute';
+    loadingDiv.style.left = `${loadingPosition.x}px`;
+    loadingDiv.style.top = `${loadingPosition.y}px`;
     loadingDiv.style.zIndex = '10000';
+
+    console.log('📍 Posição do loading:', loadingPosition);
 
     document.body.appendChild(loadingDiv);
     this.state.currentLoading = loadingDiv;
@@ -255,9 +439,32 @@ class CommunicationManager {
 
   async sendMessage(action, data = {}) {
     try {
+      // Verificar se o contexto da extensão ainda é válido
+      if (!chrome.runtime?.id) {
+        console.error('❌ Contexto da extensão invalidado - recarregue a página');
+        return {
+          success: false,
+          error: 'Extension context invalidated. Please reload the page.',
+          needsReload: true
+        };
+      }
+
       return await chrome.runtime.sendMessage({ action, ...data });
     } catch (error) {
       console.error('Erro na comunicação:', error);
+
+      // Tratamento específico para contexto invalidado
+      if (error.message.includes('Extension context invalidated') ||
+          error.message.includes('message port closed') ||
+          error.message.includes('receiving end does not exist')) {
+        console.error('🔄 Extensão foi recarregada - recarregue a página');
+        return {
+          success: false,
+          error: 'Extension was reloaded. Please refresh the page to continue.',
+          needsReload: true
+        };
+      }
+
       return { success: false, error: error.message };
     }
   }
@@ -404,6 +611,9 @@ class VeritasContentScript {
     console.log('🚀 Inicializando VeritasAI Content Script');
 
     try {
+      // Carregar CSS primeiro
+      loadCSS();
+
       // Inicializar módulos primeiro
       this.initializeModules();
 
@@ -591,61 +801,177 @@ class VeritasContentScript {
   showResult(selectionData, result) {
     console.log('🎯 showResult chamado:', result);
     console.log('📍 Posição:', selectionData.position);
+    console.log('🔍 Debug resultado completo:', {
+      classification: result.classification,
+      confidence: result.confidence,
+      summary: result.summary,
+      sources: result.sources,
+      details: result.details
+    });
 
-    // Criar tooltip de resultado
-    const tooltip = document.createElement('div');
-    tooltip.id = 'veritas-tooltip';
-    console.log('📝 Tooltip criado:', tooltip);
-    tooltip.style.cssText = `
-      position: absolute;
-      z-index: ${VERITAS_CONFIG.Z_INDEX_BASE + 1};
-      background: white;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      padding: 12px;
-      max-width: 300px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      font-size: 14px;
-      line-height: 1.4;
-    `;
+    // Criar container da tooltip com classes CSS adequadas
+    const tooltipContainer = document.createElement('div');
+    tooltipContainer.id = 'veritas-tooltip';
+    tooltipContainer.className = 'veritas-tooltip-container veritas-ui-element';
 
-    const classificationColor = {
-      'confiável': '#28a745',
-      'inconclusiva': '#ffc107',
-      'sem fundamento': '#dc3545',
-      'fake': '#dc3545'
-    }[result.classification] || '#6c757d';
-
-    tooltip.innerHTML = `
-      <div style="display: flex; align-items: center; margin-bottom: 8px;">
-        <div style="width: 12px; height: 12px; background: ${classificationColor}; border-radius: 50%; margin-right: 8px;"></div>
-        <strong style="text-transform: capitalize;">${result.classification}</strong>
-        <span style="margin-left: auto; font-size: 12px; color: #666;">${Math.round(result.confidence * 100)}%</span>
-      </div>
-      <div style="color: #333; margin-bottom: 8px;">${result.summary}</div>
-      <div style="font-size: 12px; color: #666;">
-        Fontes: ${result.sources.join(', ')}
-      </div>
-    `;
+    // Calculate smart position for tooltip (larger element)
+    const tooltipPosition = this.uiManager.calculateSmartPosition(selectionData, 320, 400, {
+      preferredPosition: 'below',
+      offset: 15,
+      margin: 20
+    });
 
     // Posicionar tooltip
-    tooltip.style.left = selectionData.position.x + 'px';
-    tooltip.style.top = selectionData.position.y + 'px';
-    console.log('📍 Tooltip posicionado em:', selectionData.position.x, selectionData.position.y);
+    tooltipContainer.style.position = 'absolute';
+    tooltipContainer.style.left = tooltipPosition.x + 'px';
+    tooltipContainer.style.top = tooltipPosition.y + 'px';
+    tooltipContainer.style.maxWidth = '320px';
+    tooltipContainer.style.maxHeight = '400px';
+    tooltipContainer.style.overflow = 'auto';
 
-    document.body.appendChild(tooltip);
-    extensionState.currentTooltip = tooltip;
-    console.log('✅ Tooltip adicionado ao DOM');
+    // Add positioning class for styling
+    tooltipContainer.classList.add(`veritas-positioned-${tooltipPosition.position}`);
 
-    // Auto-hide após delay
+    console.log('📍 Posição da tooltip:', tooltipPosition);
+
+    // Mapear classificações para classes CSS
+    const classificationMap = {
+      'confiável': 'verified',
+      'provável': 'likely_true',
+      'inconclusiva': 'uncertain',
+      'duvidosa': 'likely_false',
+      'sem fundamento': 'disputed',
+      'fake': 'disputed',
+      'erro': 'no_data'
+    };
+
+    const classificationClass = classificationMap[result.classification] || 'no_data';
+
+    // Mapear ícones para classificações
+    const classificationIcons = {
+      'verified': '✅',
+      'likely_true': '✔️',
+      'uncertain': '❓',
+      'likely_false': '⚠️',
+      'disputed': '❌',
+      'no_data': '🔍'
+    };
+
+    const icon = classificationIcons[classificationClass] || '🔍';
+    const confidence = Math.round((result.confidence || 0) * 100);
+
+    tooltipContainer.innerHTML = `
+      <div class="veritas-tooltip veritas-classification-${classificationClass}">
+        <div class="veritas-tooltip-header">
+          <div class="veritas-header-content">
+            <span class="veritas-logo">🛡️</span>
+            <h3 class="veritas-title">VeritasAI</h3>
+          </div>
+          <div style="display: flex; gap: 4px;">
+            <button class="veritas-close-btn" onclick="this.closest('.veritas-tooltip-container').setAttribute('data-keep-open', 'true')" aria-label="Manter aberto" title="Manter aberto">📌</button>
+            <button class="veritas-close-btn" onclick="this.closest('.veritas-tooltip-container').remove()" aria-label="Fechar">×</button>
+          </div>
+        </div>
+
+        <div class="veritas-tooltip-content">
+          <div class="veritas-result-main">
+            <div class="veritas-classification-badge" style="--classification-color: var(--veritas-${classificationClass.replace('_', '-')})">
+              <span class="veritas-classification-icon">${icon}</span>
+              <span class="veritas-classification-text">${result.classification}</span>
+            </div>
+
+            <div class="veritas-confidence-section">
+              <div class="veritas-confidence-bar">
+                <div class="veritas-confidence-fill" style="width: ${confidence}%; background: var(--veritas-${classificationClass.replace('_', '-')})"></div>
+              </div>
+              <div class="veritas-confidence-text">Score de Veracidade: ${confidence}%</div>
+              ${result.details?.originalScore ? `<div style="font-size: 11px; color: var(--veritas-text-secondary); text-align: center; margin-top: 2px;">Score original: ${Math.round(result.details.originalScore * 100)}%</div>` : ''}
+            </div>
+          </div>
+
+          <div class="veritas-evidence-section">
+            <h4 class="veritas-section-title">Análise</h4>
+            <div style="font-size: 14px; line-height: 1.4; color: var(--veritas-text-primary);">
+              ${result.summary || 'Verificação concluída.'}
+            </div>
+          </div>
+
+          <div class="veritas-metadata-section">
+            <h4 class="veritas-section-title">Fontes</h4>
+            <div class="veritas-evidence-list">
+              ${(result.sources || ['VeritasAI']).map(source => `
+                <div class="veritas-evidence-item">
+                  <div class="veritas-evidence-source">
+                    <span class="veritas-evidence-icon">🔗</span>
+                    <span class="veritas-evidence-name">${source}</span>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+
+          ${result.details?.reasoning ? `
+          <div class="veritas-metadata-section">
+            <h4 class="veritas-section-title">Detalhes da Análise</h4>
+            <div style="font-size: 12px; line-height: 1.3; color: var(--veritas-text-secondary); background: var(--veritas-bg-secondary); padding: 8px; border-radius: 4px;">
+              ${result.details.reasoning}
+            </div>
+          </div>
+          ` : ''}
+
+          ${result.details?.processingTime ? `
+          <div style="text-align: center; margin-top: 8px; font-size: 10px; color: var(--veritas-text-secondary);">
+            Processado em ${result.details.processingTime}ms
+          </div>
+          ` : ''}
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(tooltipContainer);
+    extensionState.currentTooltip = tooltipContainer;
+
+    // Adicionar eventos para pausar auto-hide durante interação
+    let autoHideTimeout;
+    let isHovering = false;
+
+    const startAutoHide = () => {
+      if (autoHideTimeout) clearTimeout(autoHideTimeout);
+      autoHideTimeout = setTimeout(() => {
+        if (!isHovering && tooltipContainer.parentNode && !tooltipContainer.getAttribute('data-keep-open')) {
+          tooltipContainer.classList.add('veritas-tooltip-hiding');
+          setTimeout(() => {
+            if (tooltipContainer.parentNode && !tooltipContainer.getAttribute('data-keep-open')) {
+              tooltipContainer.remove();
+              console.log('🗑️ Tooltip removida automaticamente');
+            }
+          }, 200);
+        }
+        if (!tooltipContainer.getAttribute('data-keep-open')) {
+          extensionState.currentTooltip = null;
+        }
+      }, VERITAS_CONFIG.AUTO_HIDE_DELAY);
+    };
+
+    tooltipContainer.addEventListener('mouseenter', () => {
+      isHovering = true;
+      if (autoHideTimeout) clearTimeout(autoHideTimeout);
+    });
+
+    tooltipContainer.addEventListener('mouseleave', () => {
+      isHovering = false;
+      startAutoHide();
+    });
+
+    // Adicionar classe para animação de entrada
     setTimeout(() => {
-      if (tooltip.parentNode) {
-        tooltip.remove();
-        console.log('🗑️ Tooltip removido automaticamente');
-      }
-      extensionState.currentTooltip = null;
-    }, VERITAS_CONFIG.AUTO_HIDE_DELAY);
+      tooltipContainer.classList.add('veritas-tooltip-visible');
+    }, 10);
+
+    // Iniciar auto-hide
+    startAutoHide();
+
+    console.log('✅ Tooltip estilizada adicionada ao DOM');
 
     console.log('📊 Resultado mostrado:', result.classification);
   }

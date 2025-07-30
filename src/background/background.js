@@ -8,7 +8,7 @@ console.log('🚀 VeritasAI Background Service iniciando (Groq Only)...');
 // Configuração padrão - apenas Groq AI
 const DEFAULT_CONFIG = {
   groqApiKey: '',
-  groqModel: 'llama3-70b-8192', // Modelo padrão atualizado
+  groqModel: 'llama-3.1-8b-instant', // Modelo otimizado para velocidade
   language: 'pt-BR',
   theme: 'auto',
   notificationsEnabled: true,
@@ -21,8 +21,50 @@ const DEFAULT_CONFIG = {
   verboseLogging: false
 };
 
+// Função para converter nome técnico do modelo em nome amigável
+function getModelDisplayName(modelId) {
+  const modelNames = {
+    'llama-3.1-8b-instant': 'Llama 3.1 8B Instant',
+    'llama3-70b-8192': 'Llama 3 70B',
+    'gemma2-9b-it': 'Gemma 2 9B'
+  };
+
+  return modelNames[modelId] || modelId;
+}
+
+// Prompt padrão para todos os modelos
+function getSystemPrompt() {
+  return `Você é um agente especialista em verificação de fatos. Receberá uma afirmação textual para ser analisada quanto à veracidade. Sua análise deverá ser feita de forma rigorosa, utilizando a seguinte fórmula detalhada para calcular um "score de veracidade":
+
+**Score de Veracidade (SV)** = (Relevância × 0.3) + (Consistência com fontes confiáveis × 0.4) + (Ausência de contradições lógicas × 0.2) + (Precisão de detalhes × 0.1)
+
+- **Relevância (0 a 1)**: Avalia se a afirmação aborda um tema relevante e verificável por fatos objetivos.
+- **Consistência com fontes confiáveis (0 a 1)**: Mede o grau de concordância da afirmação com informações disponíveis em fontes reconhecidas e fidedignas.
+- **Ausência de contradições lógicas (0 a 1)**: Avalia se a afirmação é logicamente coerente e livre de contradições internas ou contextuais.
+- **Precisão de detalhes (0 a 1)**: Avalia se os detalhes apresentados são corretos e verificáveis por fontes ou conhecimento geral.
+
+Classifique o resultado conforme o valor final de SV:
+- **0.75 a 1.00** → "confiável"
+- **0.50 a 0.74** → "inconclusiva"
+- **0.00 a 0.49** → "sem fundamento"
+
+Forneça sua análise APENAS no seguinte formato JSON:
+
+{
+  "classification": "confiável|inconclusiva|sem fundamento",
+  "score": 0.0-1.0,
+  "summary": "Explicação detalhada da análise feita sobre a afirmação",
+  "reasoning": "Justificativa clara da classificação e dos valores atribuídos"
+}
+
+Critérios:
+- confiável: fatos verificáveis e corretos
+- inconclusiva: informação insuficiente ou ambígua
+- sem fundamento: falso ou enganoso`;
+}
+
 // Configurar listener de mensagens principal
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
   console.log('📨 Mensagem recebida:', request.action, request);
   
   (async () => {
@@ -140,11 +182,12 @@ async function handleSaveConfiguration(newConfig) {
 /**
  * Manipula verificação de texto usando apenas Groq AI
  */
-async function handleVerifyTextWithGroq(request) {
+async function handleVerifyTextWithGroq(request, retryCount = 0) {
   const startTime = Date.now();
   const text = request.text;
-  
-  console.log('🔍 Iniciando verificação com Groq AI:', text.substring(0, 100) + '...');
+  const maxRetries = 2;
+
+  console.log('🔍 Iniciando verificação com Groq AI:', text.substring(0, 100) + '...', `(tentativa ${retryCount + 1}/${maxRetries + 1})`);
   
   try {
     // Obter configuração
@@ -156,8 +199,12 @@ async function handleVerifyTextWithGroq(request) {
     console.log('🔑 Configuração carregada:', {
       hasConfig: !!config,
       hasGroqKey: !!(groqApiKey && groqApiKey.length > 20),
-      groqModel: groqModel
+      groqModel: groqModel,
+      isUserSelectedModel: !!config.groqModel,
+      defaultModel: DEFAULT_CONFIG.groqModel
     });
+
+    console.log(`🤖 Usando modelo: ${groqModel} ${config.groqModel ? '(selecionado pelo usuário)' : '(padrão)'}`);
     
     if (!groqApiKey || groqApiKey.trim() === '') {
       return {
@@ -178,45 +225,47 @@ async function handleVerifyTextWithGroq(request) {
     }
 
     console.log('🤖 Fazendo requisição para Groq API...');
-    
+    console.log(`🎯 Modelo selecionado para requisição: ${groqModel}`);
+
+    // Criar AbortController para timeout otimizado
+    const controller = new AbortController();
+    setTimeout(() => controller.abort(), 20000); // 20 segundos timeout
+
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${groqApiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: groqModel,
-        messages: [
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${groqApiKey}`,
+          'Content-Type': 'application/json',
+          'User-Agent': 'VeritasAI/1.0',
+          'Accept': 'application/json',
+          'Cache-Control': 'no-cache'
+        },
+        signal: controller.signal,
+        body: JSON.stringify({
+          model: groqModel,
+          messages: [
           {
             role: 'system',
-            content: `Você é um especialista em verificação de fatos. Analise o texto fornecido e determine:
-1. Se é uma afirmação factual verificável
-2. Sua veracidade baseada em conhecimento geral
-3. Nível de confiança na análise
-
-Responda APENAS em formato JSON:
-{
-  "classification": "confiável|inconclusiva|sem fundamento",
-  "confidence": 0.0-1.0,
-  "summary": "Explicação detalhada da análise",
-  "reasoning": "Justificativa da classificação"
-}`
+            content: getSystemPrompt()
           },
           {
             role: 'user',
             content: `Analise este texto: "${text}"`
           }
         ],
-        temperature: 0.3,
-        max_tokens: 500
+        temperature: 0.2,
+        max_tokens: 300,
+        top_p: 0.9,
+        frequency_penalty: 0.1,
+        presence_penalty: 0.1,
+        stop: ["}"]
       })
     });
 
     // Tratamento específico para erro 429 (Rate Limit)
     if (response.status === 429) {
       console.warn('⚠️ Groq API: Limite de requisições atingido (429)');
-      
+
       return {
         success: true,
         data: {
@@ -229,6 +278,27 @@ Responda APENAS em formato JSON:
             processingTime: Date.now() - startTime,
             error: 'Rate limit exceeded (429)',
             note: 'Créditos diários esgotados. Renovação automática amanhã.'
+          }
+        }
+      };
+    }
+
+    // Tratamento específico para erro 499 (Client Closed Request)
+    if (response.status === 499) {
+      console.warn('⚠️ Groq API: Requisição cancelada (499)');
+
+      return {
+        success: true,
+        data: {
+          classification: 'inconclusiva',
+          confidence: 0.2,
+          summary: 'A requisição foi cancelada. Isso pode acontecer devido a timeout ou problemas de conectividade. Tente novamente.',
+          sources: ['VeritasAI (Timeout)'],
+          details: {
+            strategy: 'groq-timeout',
+            processingTime: Date.now() - startTime,
+            error: 'Client closed request (499)',
+            note: 'Requisição cancelada - tente novamente'
           }
         }
       };
@@ -248,40 +318,171 @@ Responda APENAS em formato JSON:
     }
 
     console.log('📊 Resposta da Groq recebida:', aiResponse.substring(0, 100) + '...');
+    console.log('🔍 Resposta completa da Groq:', aiResponse);
+
+    // Função para extrair JSON da resposta
+    function extractAndParseJSON(response) {
+      // Tentar encontrar JSON válido na resposta
+      let jsonStr = response.trim();
+
+      // Remover markdown code blocks se existirem
+      jsonStr = jsonStr.replace(/```json\s*/g, '').replace(/```\s*$/g, '');
+      jsonStr = jsonStr.replace(/```\s*/g, '');
+
+      // Tentar encontrar JSON entre chaves
+      const jsonMatch = jsonStr.match(/\{[\s\S]*?\}/);
+      if (jsonMatch) {
+        jsonStr = jsonMatch[0];
+      }
+
+      try {
+        const parsed = JSON.parse(jsonStr);
+        console.log('✅ JSON parseado com sucesso:', parsed);
+        return parsed;
+      } catch (e) {
+        console.warn('⚠️ Fallback: extraindo campos manualmente da resposta');
+
+        // Fallback para extrair campos
+        const classificationMatch = response.match(/"classification":\s*"([^"]+)"/i);
+        const scoreMatch = response.match(/"score":\s*([0-9.]+)/i);
+        const summaryMatch = response.match(/"summary":\s*"([^"]+)"/i);
+        const reasoningMatch = response.match(/"reasoning":\s*"([^"]+)"/i);
+
+        const fallbackResult = {
+          classification: classificationMatch ? classificationMatch[1] : 'inconclusiva',
+          score: scoreMatch ? parseFloat(scoreMatch[1]) : null,
+          confidence: scoreMatch ? parseFloat(scoreMatch[1]) : 0.4,
+          summary: summaryMatch ? summaryMatch[1] : response.substring(0, 150) + '...',
+          reasoning: reasoningMatch ? reasoningMatch[1] : 'Parsing manual aplicado'
+        };
+
+        return fallbackResult;
+      }
+    }
 
     // Tentar parsear resposta JSON
     let analysis;
     try {
-      analysis = JSON.parse(aiResponse);
+      analysis = extractAndParseJSON(aiResponse);
+      console.log('✅ JSON parseado com sucesso:', analysis);
     } catch (parseError) {
-      console.warn('⚠️ Erro ao parsear resposta do Groq, usando fallback');
+      console.warn('⚠️ Erro ao parsear resposta do Groq, usando fallback completo');
+      console.error('🔍 Erro de parsing:', parseError);
+      console.log('🔍 Resposta que causou erro:', aiResponse);
+
       analysis = {
         classification: 'inconclusiva',
-        confidence: 0.4,
-        summary: aiResponse.substring(0, 200) + '...',
-        reasoning: 'Análise baseada em IA'
+        score: null,
+        confidence: null, // Será tratado na validação
+        summary: 'Não foi possível processar a resposta da IA. Resposta original: ' + aiResponse.substring(0, 100) + '...',
+        reasoning: 'Erro no processamento da resposta'
       };
     }
+
+    // Validar e normalizar campos
+    const validClassifications = ['confiável', 'provável', 'inconclusiva', 'duvidosa', 'sem fundamento', 'fake'];
+    let classification = analysis.classification || 'inconclusiva';
+
+    // Normalizar classificação para valores válidos
+    if (!validClassifications.includes(classification.toLowerCase())) {
+      console.warn('⚠️ Classificação inválida recebida:', classification);
+      classification = 'inconclusiva';
+    }
+
+    // Validar score/confiança (0-1)
+    // Priorizar 'score' se disponível, senão usar 'confidence'
+    let confidence = parseFloat(analysis.score) || parseFloat(analysis.confidence) || null;
+
+    console.log('🔍 Debug score/confidence:', {
+      rawScore: analysis.score,
+      rawConfidence: analysis.confidence,
+      parsedConfidence: confidence,
+      analysisObject: analysis
+    });
+
+    if (confidence === null || isNaN(confidence) || confidence < 0 || confidence > 1) {
+      console.warn('⚠️ Score/Confiança inválida recebida:', {
+        score: analysis.score,
+        confidence: analysis.confidence,
+        parsed: confidence
+      });
+      confidence = 0.4; // Fallback apenas quando realmente necessário
+    }
+
+    // Validar summary
+    let summary = analysis.summary || 'Análise realizada por IA';
+    if (typeof summary !== 'string' || summary.length < 10) {
+      summary = 'Análise concluída. Classificação: ' + classification;
+    }
+
+    // Limitar tamanho do summary
+    if (summary.length > 300) {
+      summary = summary.substring(0, 297) + '...';
+    }
+
+    const finalConfidence = Math.min(0.95, confidence);
+
+    console.log('✅ Score final calculado:', {
+      originalScore: analysis.score,
+      originalConfidence: analysis.confidence,
+      processedConfidence: confidence,
+      finalConfidence: finalConfidence,
+      classification: classification
+    });
 
     return {
       success: true,
       data: {
-        classification: analysis.classification || 'inconclusiva',
-        confidence: Math.min(0.9, analysis.confidence || 0.4),
-        summary: analysis.summary || 'Análise realizada por IA',
-        sources: ['Groq AI (Llama 3.1)'],
+        classification: classification,
+        confidence: finalConfidence, // Máximo 95% para manter humildade
+        summary: summary,
+        sources: [`Groq AI (${getModelDisplayName(groqModel)})`],
         details: {
           strategy: 'groq-ai',
           processingTime: Date.now() - startTime,
-          reasoning: analysis.reasoning,
-          note: 'Análise realizada por inteligência artificial'
+          reasoning: analysis.reasoning || 'Análise baseada em IA',
+          note: 'Análise realizada por inteligência artificial',
+          rawResponse: aiResponse.substring(0, 200) + '...', // Para debug
+          originalScore: analysis.score, // Score original da IA
+          scoreUsed: confidence // Score efetivamente usado
         }
       }
     };
 
   } catch (error) {
     console.error('❌ Erro na verificação:', error);
-    
+
+    // Limpar timeout se ainda estiver ativo
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+
+    // Verificar se deve tentar novamente
+    if (retryCount < maxRetries && (error.name === 'AbortError' || error.message.includes('fetch'))) {
+      console.log(`🔄 Tentando novamente... (${retryCount + 1}/${maxRetries})`);
+      await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1))); // Delay progressivo
+      return handleVerifyTextWithGroq(request, retryCount + 1);
+    }
+
+    // Verificar se é erro de timeout/abort
+    if (error.name === 'AbortError') {
+      return {
+        success: true,
+        data: {
+          classification: 'inconclusiva',
+          confidence: 0.2,
+          summary: 'Timeout na verificação. A requisição demorou muito para responder. Tente novamente.',
+          sources: ['VeritasAI (Timeout)'],
+          details: {
+            strategy: 'groq-timeout',
+            processingTime: Date.now() - startTime,
+            error: 'Request timeout (20s)',
+            note: 'Requisição cancelada por timeout'
+          }
+        }
+      };
+    }
+
     // Verificar se é erro de rate limit não capturado
     if (error.message.includes('429') || error.message.includes('rate limit')) {
       return {
@@ -355,7 +556,7 @@ async function testGroqApiKey(apiKey, model = DEFAULT_CONFIG.groqModel) {
     });
 
     if (response.ok) {
-      const data = await response.json();
+      await response.json();
       return {
         success: true,
         message: 'Groq API Key válida e funcionando!',

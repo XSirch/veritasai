@@ -251,7 +251,7 @@ class PopupManager {
 
       // Groq Model
       if (this.elements.groqModelSelect) {
-        const modelValue = config.groqModel || 'llama3-70b-8192';
+        const modelValue = config.groqModel || 'llama-3.1-8b-instant';
         this.elements.groqModelSelect.value = modelValue;
         console.log('🤖 Modelo populado:', modelValue);
       } else {
@@ -358,7 +358,7 @@ class PopupManager {
   getDefaultConfiguration() {
     return {
       groqApiKey: '',
-      groqModel: 'llama3-70b-8192',
+      groqModel: 'llama-3.1-8b-instant',
       language: 'pt-BR',
       theme: 'auto',
       notificationsEnabled: true,
@@ -605,7 +605,7 @@ class PopupManager {
       button.disabled = true;
 
       // Obter modelo selecionado
-      const model = this.elements.groqModelSelect?.value || 'llama3-70b-8192';
+      const model = this.elements.groqModelSelect?.value || 'llama-3.1-8b-instant';
 
       // Enviar para background script
       const response = await this.sendMessage('testGroqApi', { apiKey, model });
@@ -664,7 +664,7 @@ class PopupManager {
   }
 
   handleModelChange() {
-    const model = this.elements.groqModelSelect?.value || 'llama3-70b-8192';
+    const model = this.elements.groqModelSelect?.value || 'llama-3.1-8b-instant';
     console.log('🤖 Modelo Groq alterado para:', model);
 
     // Salvar automaticamente quando o modelo for alterado
@@ -685,7 +685,7 @@ class PopupManager {
 
       const config = {
         groqApiKey: this.elements.groqApiKey?.value?.trim() || '',
-        groqModel: this.elements.groqModelSelect?.value || 'llama3-70b-8192',
+        groqModel: this.elements.groqModelSelect?.value || 'llama-3.1-8b-instant',
         language: this.elements.languageSelect?.value || 'pt-BR',
         theme: this.elements.themeSelect?.value || 'auto',
         notificationsEnabled: this.elements.notificationsEnabled?.checked !== false,

@@ -34,14 +34,17 @@ O sistema utiliza uma arquitetura simplificada com:
 **Sprint atual**: 6 - CONCLUÍDO
 **Última atualização**: 2025-01-28
 
-### 🧹 Limpeza do Projeto (2025-01-28)
-Realizada limpeza completa removendo arquivos temporários de debugging:
-- ❌ `src/background/background-simple.js` - arquivo temporário removido
-- ❌ `test-extension/` - pasta de teste simples removida
-- ❌ `scripts/test-extension-manual.js` - script temporário removido
-- ❌ `scripts/check-extension-loaded.js` - script temporário removido
-- ❌ `scripts/test-chrome-direct.bat` - script temporário removido
-- ✅ **Loading infinito no popup corrigido** - adicionado timeout e fallback para storage
+### 🧹 Limpeza Completa do Projeto (2025-01-30)
+Realizada limpeza massiva removendo arquivos não utilizados:
+- ❌ **Documentação redundante**: 8 arquivos de status/relatórios removidos
+- ❌ **Pastas de build**: coverage/, dist/, test-results/, playwright-report/, logs/
+- ❌ **Código JavaScript não utilizado**: content-main.js, modules/, serviços órfãos
+- ❌ **Serviços não utilizados**: 7 serviços JavaScript removidos
+- ❌ **Utilitários não utilizados**: 10 utilitários JavaScript removidos
+- ❌ **Scripts desnecessários**: 11 scripts de automação removidos
+- ❌ **Exemplos excessivos**: 4 arquivos de exemplo removidos
+- ❌ **Documentação técnica**: 6 documentos VER-* removidos
+- ✅ **Projeto otimizado**: Mantido apenas código realmente utilizado
 
 ### ✅ Implementado
 - **VER-001**: Estrutura inicial do projeto (Configuração base completa)
@@ -203,20 +206,34 @@ uv add requests      # Adicionar dependência
 uv sync              # Sincronizar ambiente
 ```
 
-### Estrutura do Projeto
+### Estrutura do Projeto (Simplificada)
 ```
 src/
 ├── background/      # Background scripts
+│   ├── background.js        # Service worker principal
+│   └── api-integration.js   # Integração com APIs
 ├── content/         # Content scripts
+│   └── content.js           # Script principal de conteúdo
 ├── popup/           # Extension popup
+│   ├── popup.html
+│   ├── popup.css
+│   └── popup.js
 ├── options/         # Settings page
+│   ├── options.html
+│   ├── options.css
+│   └── options.js
 ├── services/        # Core business logic
+│   ├── ConfigService.js     # Gerenciamento de configurações
+│   └── __init__.py
 ├── utils/           # Utilities
-├── config/          # Configuration
+│   ├── text_processor.py    # Processamento de texto (Python)
+│   └── __init__.py
 ├── domain/          # Domain layer (Python)
 │   ├── entities/    # Domain entities
 │   └── value_objects/ # Value objects
 └── assets/          # Static assets
+    ├── icons/       # Ícones da extensão
+    └── styles/      # Estilos CSS
 ```
 
 ### Componentes Backend (Python)
