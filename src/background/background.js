@@ -86,73 +86,184 @@ class SimpleQdrantService {
   }
 
   async generateEmbeddings(text) {
-    try {
-      // Usar uma API de embeddings mais simples e confiável
-      const cleanText = text.substring(0, 500).replace(/\n/g, ' ').trim();
+    const cleanText = text.substring(0, 500).replace(/\n/g, ' ').trim();
 
-      // Usar API pública do Hugging Face sem autenticação
-      const response = await fetch('https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          inputs: cleanText,
-          options: {
-            wait_for_model: true,
-            use_cache: true
-          }
-        })
-      });
+    // Try multiple embedding providers in order of preference
+    const providers = [
+      () => this.tryOpenAIEmbeddings(cleanText),
+      () => this.tryCohereEmbeddings(cleanText),
+      () => this.tryHuggingFaceWithAuth(cleanText),
+      () => this.tryAlternativeHuggingFace(cleanText),
+      () => this.tryJinaAIEmbeddings(cleanText)
+    ];
 
-      if (response.ok) {
-        const embeddings = await response.json();
+    for (let i = 0; i < providers.length; i++) {
+      try {
+        console.log(`🔄 Tentando provider de embeddings ${i + 1}/${providers.length}...`);
+        const embeddings = await providers[i]();
 
-        // Verificar se recebemos embeddings válidos
-        if (Array.isArray(embeddings)) {
-          const vector = Array.isArray(embeddings[0]) ? embeddings[0] : embeddings;
-
-          if (vector && vector.length === 384) {
-            console.log('✅ Embeddings gerados com sucesso:', vector.length, 'dimensões');
-            return vector;
-          }
+        if (embeddings && embeddings.length === 384) {
+          console.log(`✅ Embeddings gerados com sucesso via provider ${i + 1}:`, embeddings.length, 'dimensões');
+          return embeddings;
         }
-
-        throw new Error('Invalid embedding format received');
-      } else {
-        const errorText = await response.text();
-        throw new Error(`API Error: ${response.status} - ${errorText}`);
-      }
-    } catch (error) {
-      console.log('⚠️ Hugging Face API não disponível, usando fallback local:', error.message);
-
-      // Fallback: gerar embedding simples baseado em hash do texto
-      console.log('🔄 Gerando embeddings localmente (fallback)...');
-      return this.generateFallbackEmbedding(text);
-    }
-  }
-
-  generateFallbackEmbedding(text) {
-    // Gerar embedding simples de 384 dimensões baseado no texto
-    const vector = new Array(384).fill(0);
-    const cleanText = text.toLowerCase().replace(/[^a-z0-9\s]/g, '');
-
-    for (let i = 0; i < cleanText.length && i < 384; i++) {
-      const charCode = cleanText.charCodeAt(i);
-      vector[i % 384] += (charCode / 255) * Math.sin(i * 0.1);
-    }
-
-    // Normalizar o vetor
-    const magnitude = Math.sqrt(vector.reduce((sum, val) => sum + val * val, 0));
-    if (magnitude > 0) {
-      for (let i = 0; i < vector.length; i++) {
-        vector[i] = vector[i] / magnitude;
+      } catch (error) {
+        console.log(`⚠️ Provider ${i + 1} falhou:`, error.message);
+        continue;
       }
     }
 
-    console.log('✅ Embedding local gerado com sucesso:', vector.length, 'dimensões');
-    return vector;
+    // If all providers fail, throw error (no local fallback as requested)
+    throw new Error('All embedding providers failed. Please check your API keys or network connection.');
   }
+
+  async tryOpenAIEmbeddings(text) {
+    // Get user's OpenAI API key from storage if available
+    const config = await chrome.storage.sync.get(['veritasConfig']);
+    const openaiKey = config.veritasConfig?.openaiApiKey;
+
+    if (!openaiKey) {
+      throw new Error('OpenAI API key not configured');
+    }
+
+    const response = await fetch('https://api.openai.com/v1/embeddings', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${openaiKey}`
+      },
+      body: JSON.stringify({
+        model: 'text-embedding-3-small',
+        input: text,
+        dimensions: 384
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`OpenAI API Error: ${response.status} - ${error}`);
+    }
+
+    const data = await response.json();
+    return data.data[0].embedding;
+  }
+
+  async tryCohereEmbeddings(text) {
+    // Get user's Cohere API key from storage if available
+    const config = await chrome.storage.sync.get(['veritasConfig']);
+    const cohereKey = config.veritasConfig?.cohereApiKey;
+
+    if (!cohereKey) {
+      throw new Error('Cohere API key not configured');
+    }
+
+    const response = await fetch('https://api.cohere.ai/v1/embed', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${cohereKey}`
+      },
+      body: JSON.stringify({
+        texts: [text],
+        model: 'embed-multilingual-light-v3.0',
+        input_type: 'search_document'
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Cohere API Error: ${response.status} - ${error}`);
+    }
+
+    const data = await response.json();
+    const embeddings = data.embeddings[0];
+
+    // Cohere returns 384 dimensions for light model
+    return embeddings.slice(0, 384);
+  }
+
+  async tryHuggingFaceWithAuth(text) {
+    // Get user's Hugging Face API key from storage if available
+    const config = await chrome.storage.sync.get(['veritasConfig']);
+    const hfKey = config.veritasConfig?.huggingFaceApiKey;
+
+    if (!hfKey) {
+      throw new Error('Hugging Face API key not configured');
+    }
+
+    const response = await fetch('https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${hfKey}`
+      },
+      body: JSON.stringify({
+        inputs: text,
+        options: {
+          wait_for_model: true,
+          use_cache: true
+        }
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Hugging Face API Error: ${response.status} - ${error}`);
+    }
+
+    const embeddings = await response.json();
+    return Array.isArray(embeddings[0]) ? embeddings[0] : embeddings;
+  }
+
+  async tryAlternativeHuggingFace(text) {
+    // Try different Hugging Face model that might be more accessible
+    const response = await fetch('https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/paraphrase-MiniLM-L6-v2', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        inputs: text,
+        options: {
+          wait_for_model: true,
+          use_cache: true
+        }
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Alternative Hugging Face API Error: ${response.status} - ${error}`);
+    }
+
+    const embeddings = await response.json();
+    return Array.isArray(embeddings[0]) ? embeddings[0] : embeddings;
+  }
+
+  async tryJinaAIEmbeddings(text) {
+    // Try Jina AI's free embedding API
+    const response = await fetch('https://api.jina.ai/v1/embeddings', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer jina_free_token' // They offer free tier
+      },
+      body: JSON.stringify({
+        model: 'jina-embeddings-v2-small-en',
+        input: [text],
+        dimensions: 384
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Jina AI API Error: ${response.status} - ${error}`);
+    }
+
+    const data = await response.json();
+    return data.data[0].embedding;
+  }
+
+
 
   async searchSimilar(text, threshold = null) {
     if (!this.isAvailable) return null;
@@ -481,34 +592,38 @@ async function handleVerifyTextWithGroq(request, retryCount = 0) {
 
     // Step 1: Check Qdrant for similar content first
     if (qdrantService && qdrantService.isServiceAvailable()) {
-      console.log('🔍 Searching Qdrant for similar content...');
+      try {
+        console.log('🔍 Searching Qdrant for similar content...');
 
-      const similarResult = await qdrantService.searchSimilar(text);
+        const similarResult = await qdrantService.searchSimilar(text);
 
-      if (similarResult && similarResult.fromCache) {
-        console.log(`🎯 Found cached result with similarity: ${(similarResult.score * 100).toFixed(1)}%`);
+        if (similarResult && similarResult.fromCache) {
+          console.log(`🎯 Found cached result with similarity: ${(similarResult.score * 100).toFixed(1)}%`);
 
-        // Return cached result with enhanced metadata
-        return {
-          success: true,
-          data: {
-            classification: similarResult.payload.classification,
-            confidence: Math.min(0.95, similarResult.payload.score || 0.4),
-            summary: similarResult.payload.summary + ' (Cache inteligente)',
-            sources: [`Groq AI (${getModelDisplayName(similarResult.payload.model_used)}) - Cached`],
-            details: {
-              strategy: 'qdrant-cache',
-              processingTime: Date.now() - startTime,
-              reasoning: similarResult.payload.reasoning,
-              note: 'Resultado do cache de conhecimento baseado em similaridade semântica',
-              cacheScore: similarResult.score,
-              originalTimestamp: similarResult.payload.timestamp,
-              fromCache: true
+          // Return cached result with enhanced metadata
+          return {
+            success: true,
+            data: {
+              classification: similarResult.payload.classification,
+              confidence: Math.min(0.95, similarResult.payload.score || 0.4),
+              summary: similarResult.payload.summary + ' (Cache inteligente)',
+              sources: [`Groq AI (${getModelDisplayName(similarResult.payload.model_used)}) - Cached`],
+              details: {
+                strategy: 'qdrant-cache',
+                processingTime: Date.now() - startTime,
+                reasoning: similarResult.payload.reasoning,
+                note: 'Resultado do cache de conhecimento baseado em similaridade semântica',
+                cacheScore: similarResult.score,
+                originalTimestamp: similarResult.payload.timestamp,
+                fromCache: true
+              }
             }
-          }
-        };
-      } else {
-        console.log('🔍 No similar content found in cache, proceeding with LLM analysis...');
+          };
+        } else {
+          console.log('🔍 No similar content found in cache, proceeding with LLM analysis...');
+        }
+      } catch (cacheError) {
+        console.warn('⚠️ Cache search failed, proceeding with LLM analysis:', cacheError.message);
       }
     }
 
@@ -757,14 +872,25 @@ async function handleVerifyTextWithGroq(request, retryCount = 0) {
         language: 'pt-BR'
       };
 
-      // Store asynchronously (don't wait for completion)
+      // Store asynchronously with better error handling
       qdrantService.storeResult(text, {
         classification: classification,
         score: finalConfidence,
         summary: summary,
         reasoning: analysis.reasoning || 'Análise baseada em IA'
-      }, metadata).catch(error => {
-        console.warn('⚠️ Failed to store in Qdrant (non-blocking):', error.message);
+      }, metadata).then(success => {
+        if (success) {
+          console.log('✅ Result successfully stored in Qdrant cache');
+        } else {
+          console.warn('⚠️ Failed to store result in Qdrant cache');
+        }
+      }).catch(error => {
+        console.warn('⚠️ Qdrant storage error (non-blocking):', error.message);
+
+        // If it's an embedding error, suggest API key configuration
+        if (error.message.includes('embedding')) {
+          console.log('💡 Tip: Configure embedding API keys in the popup for better cache performance');
+        }
       });
     }
 

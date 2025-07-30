@@ -48,10 +48,15 @@ class PopupManager {
     this.elements.extensionStatus = document.getElementById('extension-status');
     this.elements.apiStatus = document.getElementById('api-status');
 
-    // API inputs - apenas Groq
+    // API inputs - Groq
     this.elements.groqApiKey = document.getElementById('groq-api-key');
     this.elements.groqApiStatus = document.getElementById('groq-api-status');
     this.elements.groqModelSelect = document.getElementById('groq-model-select');
+
+    // Embedding API inputs
+    this.elements.openaiApiKey = document.getElementById('openai-api-key');
+    this.elements.cohereApiKey = document.getElementById('cohere-api-key');
+    this.elements.huggingfaceApiKey = document.getElementById('huggingface-api-key');
 
     // Qdrant status
     this.elements.qdrantStatus = document.getElementById('qdrant-status');
@@ -272,6 +277,22 @@ class PopupManager {
       } else {
         console.error('❌ Elemento groqModelSelect não encontrado');
       }
+
+      // Embedding API Keys
+      if (this.elements.openaiApiKey) {
+        this.elements.openaiApiKey.value = config.openaiApiKey || '';
+        console.log('🔑 OpenAI API Key populada:', config.openaiApiKey ? 'sk-...' : 'vazia');
+      }
+
+      if (this.elements.cohereApiKey) {
+        this.elements.cohereApiKey.value = config.cohereApiKey || '';
+        console.log('🔑 Cohere API Key populada:', config.cohereApiKey ? 'co-...' : 'vazia');
+      }
+
+      if (this.elements.huggingfaceApiKey) {
+        this.elements.huggingfaceApiKey.value = config.huggingFaceApiKey || '';
+        console.log('🔑 Hugging Face API Key populada:', config.huggingFaceApiKey ? 'hf_...' : 'vazia');
+      }
     
     // Preferences
     if (this.elements.languageSelect) {
@@ -374,6 +395,9 @@ class PopupManager {
     return {
       groqApiKey: '',
       groqModel: 'llama-3.1-8b-instant',
+      openaiApiKey: '',
+      cohereApiKey: '',
+      huggingFaceApiKey: '',
       language: 'pt-BR',
       theme: 'auto',
       notificationsEnabled: true,
@@ -775,6 +799,9 @@ class PopupManager {
       const config = {
         groqApiKey: this.elements.groqApiKey?.value?.trim() || '',
         groqModel: this.elements.groqModelSelect?.value || 'llama-3.1-8b-instant',
+        openaiApiKey: this.elements.openaiApiKey?.value?.trim() || '',
+        cohereApiKey: this.elements.cohereApiKey?.value?.trim() || '',
+        huggingFaceApiKey: this.elements.huggingfaceApiKey?.value?.trim() || '',
         language: this.elements.languageSelect?.value || 'pt-BR',
         theme: this.elements.themeSelect?.value || 'auto',
         notificationsEnabled: this.elements.notificationsEnabled?.checked !== false,
