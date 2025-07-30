@@ -1,9 +1,28 @@
 /**
- * VeritasAI - Background Service Worker (Groq Only)
- * Versão simplificada usando apenas Groq AI
+ * VeritasAI - Background Service Worker (Groq + Qdrant)
+ * Versão com integração de vector database para cache inteligente
  */
 
-console.log('🚀 VeritasAI Background Service iniciando (Groq Only)...');
+console.log('🚀 VeritasAI Background Service iniciando (Groq + Qdrant)...');
+
+// Qdrant Service for vector database integration
+let qdrantService = null;
+
+// Initialize Qdrant service
+async function initializeQdrant() {
+  try {
+    // Dynamic import to avoid blocking if Qdrant is not available
+    const { default: QdrantService } = await import('../services/qdrant-service.js');
+    qdrantService = QdrantService;
+    console.log('✅ Qdrant service initialized');
+  } catch (error) {
+    console.log('⚠️ Qdrant service not available, using LLM-only mode:', error.message);
+    qdrantService = null;
+  }
+}
+
+// Initialize Qdrant on startup
+initializeQdrant();
 
 // Configuração padrão - apenas Groq AI
 const DEFAULT_CONFIG = {
@@ -105,6 +124,11 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
           console.log('🧪 Testando Groq API...');
           response = await testGroqApiKey(request.apiKey, request.model);
           break;
+
+        case 'getQdrantStats':
+          console.log('📊 Obtendo estatísticas do Qdrant...');
+          response = await getQdrantStats();
+          break;
           
         default:
           console.warn('⚠️ Ação não reconhecida:', request.action);
@@ -187,14 +211,47 @@ async function handleVerifyTextWithGroq(request, retryCount = 0) {
   const text = request.text;
   const maxRetries = 2;
 
-  console.log('🔍 Iniciando verificação com Groq AI:', text.substring(0, 100) + '...', `(tentativa ${retryCount + 1}/${maxRetries + 1})`);
-  
+  console.log('🔍 Iniciando verificação com cache inteligente:', text.substring(0, 100) + '...', `(tentativa ${retryCount + 1}/${maxRetries + 1})`);
+
   try {
     // Obter configuração
     const configResult = await chrome.storage.sync.get(['veritasConfig']);
     const config = configResult.veritasConfig || DEFAULT_CONFIG;
     const groqApiKey = config.groqApiKey;
     const groqModel = config.groqModel || DEFAULT_CONFIG.groqModel;
+
+    // Step 1: Check Qdrant for similar content first
+    if (qdrantService && qdrantService.isServiceAvailable()) {
+      console.log('🔍 Searching Qdrant for similar content...');
+
+      const similarResult = await qdrantService.searchSimilar(text);
+
+      if (similarResult && similarResult.fromCache) {
+        console.log(`🎯 Found cached result with similarity: ${(similarResult.score * 100).toFixed(1)}%`);
+
+        // Return cached result with enhanced metadata
+        return {
+          success: true,
+          data: {
+            classification: similarResult.payload.classification,
+            confidence: Math.min(0.95, similarResult.payload.score || 0.4),
+            summary: similarResult.payload.summary + ' (Cache inteligente)',
+            sources: [`Groq AI (${getModelDisplayName(similarResult.payload.model_used)}) - Cached`],
+            details: {
+              strategy: 'qdrant-cache',
+              processingTime: Date.now() - startTime,
+              reasoning: similarResult.payload.reasoning,
+              note: 'Resultado do cache de conhecimento baseado em similaridade semântica',
+              cacheScore: similarResult.score,
+              originalTimestamp: similarResult.payload.timestamp,
+              fromCache: true
+            }
+          }
+        };
+      } else {
+        console.log('🔍 No similar content found in cache, proceeding with LLM analysis...');
+      }
+    }
 
     console.log('🔑 Configuração carregada:', {
       hasConfig: !!config,
@@ -430,6 +487,28 @@ async function handleVerifyTextWithGroq(request, retryCount = 0) {
       classification: classification
     });
 
+    // Step 3: Store result in Qdrant for future similarity searches
+    if (qdrantService && qdrantService.isServiceAvailable()) {
+      console.log('💾 Storing result in Qdrant for future cache...');
+
+      const metadata = {
+        model: groqModel,
+        url: request.url || '',
+        domain: request.domain || '',
+        language: 'pt-BR'
+      };
+
+      // Store asynchronously (don't wait for completion)
+      qdrantService.storeResult(text, {
+        classification: classification,
+        score: finalConfidence,
+        summary: summary,
+        reasoning: analysis.reasoning || 'Análise baseada em IA'
+      }, metadata).catch(error => {
+        console.warn('⚠️ Failed to store in Qdrant (non-blocking):', error.message);
+      });
+    }
+
     return {
       success: true,
       data: {
@@ -444,7 +523,8 @@ async function handleVerifyTextWithGroq(request, retryCount = 0) {
           note: 'Análise realizada por inteligência artificial',
           rawResponse: aiResponse.substring(0, 200) + '...', // Para debug
           originalScore: analysis.score, // Score original da IA
-          scoreUsed: confidence // Score efetivamente usado
+          scoreUsed: confidence, // Score efetivamente usado
+          storedInCache: qdrantService && qdrantService.isServiceAvailable()
         }
       }
     };
@@ -516,6 +596,59 @@ async function handleVerifyTextWithGroq(request, retryCount = 0) {
           error: error.message,
           note: 'Erro ao conectar com a API Groq'
         }
+      }
+    };
+  }
+}
+
+/**
+ * Obtém estatísticas do Qdrant
+ */
+async function getQdrantStats() {
+  try {
+    if (!qdrantService || !qdrantService.isServiceAvailable()) {
+      return {
+        success: false,
+        error: 'Qdrant service not available',
+        data: {
+          available: false,
+          message: 'Qdrant vector database is not connected. Install and run Qdrant locally for enhanced caching.'
+        }
+      };
+    }
+
+    const stats = await qdrantService.getStats();
+
+    if (stats) {
+      return {
+        success: true,
+        data: {
+          available: true,
+          total_points: stats.total_points,
+          indexed_points: stats.indexed_points,
+          status: stats.status,
+          similarity_threshold: qdrantService.similarityThreshold,
+          message: `Knowledge base contains ${stats.total_points} fact-checked items`
+        }
+      };
+    } else {
+      return {
+        success: false,
+        error: 'Failed to get Qdrant statistics',
+        data: {
+          available: false,
+          message: 'Unable to retrieve Qdrant statistics'
+        }
+      };
+    }
+  } catch (error) {
+    console.error('❌ Error getting Qdrant stats:', error);
+    return {
+      success: false,
+      error: error.message,
+      data: {
+        available: false,
+        message: 'Error connecting to Qdrant vector database'
       }
     };
   }

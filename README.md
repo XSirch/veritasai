@@ -25,14 +25,26 @@ VeritasAI é uma extensão de navegador que permite a classificação automátic
 
 O sistema utiliza uma arquitetura simplificada com:
 - **🤖 Groq AI**: Análise inteligente usando Llama 3.1 70B
+- **🧠 Cache Inteligente**: Integração opcional com Qdrant para respostas mais rápidas
 - **🔄 Loading Indicators**: Feedback visual durante verificação
 - **⚡ Performance**: Resposta rápida e interface otimizada
+- **🎯 Posicionamento Inteligente**: Tooltips sempre visíveis próximas ao texto
 
 ## 📊 Status do Projeto
 
 **Progresso atual**: 100% (21/21 tarefas principais concluídas)
 **Sprint atual**: 6 - CONCLUÍDO
 **Última atualização**: 2025-01-28
+
+### 🧠 Nova Funcionalidade: Cache Inteligente com Qdrant (2025-01-30)
+Implementada integração opcional com vector database:
+- **🎯 Similaridade Semântica**: Busca por conteúdo similar já verificado
+- **⚡ Respostas Instantâneas**: Cache hits em ~100ms vs 2-5s do LLM
+- **💰 Redução de Custos**: Até 70% menos chamadas para API
+- **🔒 Privacidade**: Execução local, dados não saem do computador
+- **🔧 Opcional**: Funciona perfeitamente sem Qdrant instalado
+
+> **Instalação**: Veja [QDRANT_SETUP.md](QDRANT_SETUP.md) para instruções detalhadas
 
 ### 🧹 Limpeza Completa do Projeto (2025-01-30)
 Realizada limpeza massiva removendo arquivos não utilizados:

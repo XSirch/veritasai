@@ -53,6 +53,9 @@ class PopupManager {
     this.elements.groqApiStatus = document.getElementById('groq-api-status');
     this.elements.groqModelSelect = document.getElementById('groq-model-select');
 
+    // Qdrant status
+    this.elements.qdrantStatus = document.getElementById('qdrant-status');
+
     // Preference inputs
     this.elements.languageSelect = document.getElementById('language-select');
     this.elements.themeSelect = document.getElementById('theme-select');
@@ -191,6 +194,7 @@ class PopupManager {
         console.log('🔧 Configuração atual definida:', this.currentConfig);
         this.populateForm();
         this.updateApiStatus();
+        this.updateQdrantStatus();
         return;
       } else {
         console.warn('⚠️ Background script não respondeu, tentando fallback...');
@@ -214,6 +218,7 @@ class PopupManager {
 
         this.populateForm();
         this.updateApiStatus();
+        this.updateQdrantStatus();
 
       } catch (storageError) {
         console.error('❌ Erro ao carregar do storage:', storageError);
@@ -533,6 +538,49 @@ class PopupManager {
       }
     } catch (error) {
       console.error('❌ Erro ao atualizar status das APIs:', error);
+    }
+  }
+
+  /**
+   * Atualiza status do Qdrant
+   */
+  async updateQdrantStatus() {
+    console.log('🧠 Verificando status do Qdrant...');
+
+    if (!this.elements.qdrantStatus) {
+      console.warn('⚠️ Elemento qdrantStatus não encontrado');
+      return;
+    }
+
+    try {
+      // Mostrar status de carregamento
+      this.elements.qdrantStatus.innerHTML = '<span class="status-indicator loading"></span>Verificando cache...';
+
+      // Solicitar estatísticas do Qdrant via background script
+      const response = await this.sendMessage('getQdrantStats', {});
+
+      if (response && response.success && response.data.available) {
+        // Qdrant disponível
+        const stats = response.data;
+        this.elements.qdrantStatus.innerHTML = `
+          <span class="status-indicator active"></span>
+          Cache Ativo (${stats.total_points || 0} itens)
+        `;
+        console.log('✅ Qdrant disponível:', stats);
+      } else {
+        // Qdrant não disponível
+        this.elements.qdrantStatus.innerHTML = `
+          <span class="status-indicator warning"></span>
+          Cache Offline (Opcional)
+        `;
+        console.log('⚠️ Qdrant não disponível');
+      }
+    } catch (error) {
+      console.error('❌ Erro ao verificar Qdrant:', error);
+      this.elements.qdrantStatus.innerHTML = `
+        <span class="status-indicator error"></span>
+        Cache Indisponível
+      `;
     }
   }
   
