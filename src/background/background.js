@@ -25,9 +25,20 @@ class SimpleQdrantService {
     this.isAvailable = false;
     this.similarityThreshold = 0.85;
     this.maxResults = 5;
+    this.debugMode = true; // Enable detailed logging for troubleshooting
 
     // Initialize connection check
     this.checkConnection();
+  }
+
+  log(message, data = null) {
+    if (this.debugMode) {
+      if (data) {
+        console.log(message, data);
+      } else {
+        console.log(message);
+      }
+    }
   }
 
   async checkConnection() {
@@ -53,34 +64,64 @@ class SimpleQdrantService {
 
   async ensureCollection() {
     try {
+      console.log('🔍 Checking if Qdrant collection exists...');
       const checkResponse = await fetch(`${this.baseUrl}/collections/${this.collectionName}`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
       });
 
+      console.log('📥 Collection check response:', checkResponse.status, checkResponse.statusText);
+
       if (!checkResponse.ok) {
         console.log('🔧 Creating Qdrant collection for fact-checking...');
 
+        const collectionConfig = {
+          vectors: {
+            size: 384,
+            distance: 'Cosine'
+          },
+          optimizers_config: {
+            default_segment_number: 2
+          },
+          replication_factor: 1
+        };
+
+        console.log('📤 Creating collection with config:', collectionConfig);
+
         const createResponse = await fetch(`${this.baseUrl}/collections/${this.collectionName}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            vectors: { size: 384, distance: 'Cosine' },
-            optimizers_config: { default_segment_number: 2 },
-            replication_factor: 1
-          })
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify(collectionConfig)
         });
 
+        console.log('📥 Collection creation response:', createResponse.status, createResponse.statusText);
+
         if (createResponse.ok) {
-          console.log('✅ Qdrant collection created successfully');
+          const responseData = await createResponse.json();
+          console.log('✅ Qdrant collection created successfully:', responseData);
         } else {
-          throw new Error('Failed to create collection');
+          const errorText = await createResponse.text();
+          console.error('❌ Failed to create collection:', {
+            status: createResponse.status,
+            error: errorText
+          });
+          throw new Error(`Failed to create collection: ${createResponse.status} - ${errorText}`);
         }
       } else {
-        console.log('✅ Qdrant collection already exists');
+        const collectionInfo = await checkResponse.json();
+        console.log('✅ Qdrant collection already exists:', {
+          points_count: collectionInfo.result?.points_count || 0,
+          status: collectionInfo.result?.status
+        });
       }
     } catch (error) {
-      console.error('❌ Error ensuring Qdrant collection:', error);
+      console.error('❌ Error ensuring Qdrant collection:', {
+        message: error.message,
+        stack: error.stack
+      });
       this.isAvailable = false;
     }
   }
@@ -266,28 +307,64 @@ class SimpleQdrantService {
 
 
   async searchSimilar(text, threshold = null) {
-    if (!this.isAvailable) return null;
+    if (!this.isAvailable) {
+      console.log('⚠️ Qdrant not available for search');
+      return null;
+    }
 
     try {
+      console.log('🔄 Generating embeddings for search...');
       const embeddings = await this.generateEmbeddings(text);
-      if (!embeddings) return null;
+
+      if (!embeddings) {
+        console.warn('⚠️ No embeddings generated for search');
+        return null;
+      }
+
+      if (!Array.isArray(embeddings) || embeddings.length !== 384) {
+        console.error('❌ Invalid embeddings for search:', {
+          isArray: Array.isArray(embeddings),
+          length: embeddings?.length
+        });
+        return null;
+      }
+
+      console.log('✅ Valid embeddings generated for search:', embeddings.length, 'dimensions');
 
       const searchThreshold = threshold || this.similarityThreshold;
+      console.log('🔍 Searching with threshold:', searchThreshold);
+
+      const searchBody = {
+        vector: embeddings,
+        limit: this.maxResults,
+        score_threshold: searchThreshold,
+        with_payload: true,
+        with_vector: false
+      };
+
+      console.log('📤 Searching Qdrant:', {
+        url: `${this.baseUrl}/collections/${this.collectionName}/points/search`,
+        threshold: searchThreshold,
+        limit: this.maxResults
+      });
 
       const response = await fetch(`${this.baseUrl}/collections/${this.collectionName}/points/search`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          vector: embeddings,
-          limit: this.maxResults,
-          score_threshold: searchThreshold,
-          with_payload: true,
-          with_vector: false
-        })
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(searchBody)
       });
+
+      console.log('📥 Search response status:', response.status, response.statusText);
 
       if (response.ok) {
         const results = await response.json();
+        console.log('📊 Search results:', {
+          found: results.result?.length || 0,
+          threshold: searchThreshold
+        });
 
         if (results.result && results.result.length > 0) {
           const bestMatch = results.result[0];
@@ -298,27 +375,57 @@ class SimpleQdrantService {
             payload: bestMatch.payload,
             fromCache: true
           };
+        } else {
+          console.log('🔍 No similar content found above threshold');
         }
+      } else {
+        const errorText = await response.text();
+        console.error('❌ Qdrant search failed:', {
+          status: response.status,
+          error: errorText
+        });
       }
 
       return null;
     } catch (error) {
-      console.warn('⚠️ Qdrant search failed:', error.message);
+      console.error('❌ Qdrant search error:', {
+        message: error.message,
+        stack: error.stack
+      });
       return null;
     }
   }
 
   async storeResult(text, analysis, metadata = {}) {
-    if (!this.isAvailable) return false;
+    if (!this.isAvailable) {
+      console.warn('⚠️ Qdrant not available for storage');
+      return false;
+    }
 
     try {
+      console.log('🔄 Generating embeddings for storage...');
       const embeddings = await this.generateEmbeddings(text);
-      if (!embeddings) return false;
 
-      const pointId = Date.now().toString();
+      if (!embeddings) {
+        console.error('❌ No embeddings generated for storage');
+        return false;
+      }
+
+      if (!Array.isArray(embeddings) || embeddings.length !== 384) {
+        console.error('❌ Invalid embeddings format:', {
+          isArray: Array.isArray(embeddings),
+          length: embeddings?.length,
+          type: typeof embeddings
+        });
+        return false;
+      }
+
+      console.log('✅ Valid embeddings generated for storage:', embeddings.length, 'dimensions');
+
+      const pointId = `veritas_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 
       const payload = {
-        original_text: text,
+        original_text: text.substring(0, 1000), // Limit text length
         classification: analysis.classification,
         score: analysis.score || analysis.confidence,
         summary: analysis.summary,
@@ -331,26 +438,52 @@ class SimpleQdrantService {
         language: metadata.language || 'pt-BR'
       };
 
-      const response = await fetch(`${this.baseUrl}/collections/${this.collectionName}/points`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          points: [{
-            id: pointId,
-            vector: embeddings,
-            payload: payload
-          }]
-        })
+      const requestBody = {
+        points: [{
+          id: pointId,
+          vector: embeddings,
+          payload: payload
+        }]
+      };
+
+      console.log('📤 Sending to Qdrant:', {
+        url: `${this.baseUrl}/collections/${this.collectionName}/points`,
+        pointId: pointId,
+        vectorLength: embeddings.length,
+        payloadKeys: Object.keys(payload)
       });
 
+      const response = await fetch(`${this.baseUrl}/collections/${this.collectionName}/points`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      console.log('📥 Qdrant response status:', response.status, response.statusText);
+
       if (response.ok) {
-        console.log('✅ Fact-check result stored in Qdrant');
+        const responseData = await response.json();
+        console.log('✅ Fact-check result stored in Qdrant:', responseData);
         return true;
       } else {
-        throw new Error('Failed to store in Qdrant');
+        const errorText = await response.text();
+        console.error('❌ Qdrant storage failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorText,
+          url: `${this.baseUrl}/collections/${this.collectionName}/points`
+        });
+        throw new Error(`Qdrant API Error: ${response.status} - ${errorText}`);
       }
     } catch (error) {
-      console.warn('⚠️ Failed to store in Qdrant:', error.message);
+      console.error('❌ Failed to store in Qdrant:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
       return false;
     }
   }
