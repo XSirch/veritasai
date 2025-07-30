@@ -5,24 +5,279 @@
 
 console.log('🚀 VeritasAI Background Service iniciando (Groq + Qdrant)...');
 
+// Add startup completion log
+chrome.runtime.onStartup.addListener(() => {
+  console.log('🔄 Extension startup completed');
+});
+
+chrome.runtime.onInstalled.addListener(() => {
+  console.log('🎉 Extension installed/updated');
+});
+
 // Qdrant Service for vector database integration
 let qdrantService = null;
 
-// Initialize Qdrant service
-async function initializeQdrant() {
-  try {
-    // Dynamic import to avoid blocking if Qdrant is not available
-    const { default: QdrantService } = await import('../services/qdrant-service.js');
-    qdrantService = QdrantService;
-    console.log('✅ Qdrant service initialized');
-  } catch (error) {
-    console.log('⚠️ Qdrant service not available, using LLM-only mode:', error.message);
-    qdrantService = null;
+// Simple Qdrant service implementation to avoid import issues
+class SimpleQdrantService {
+  constructor() {
+    this.baseUrl = 'http://localhost:6333';
+    this.collectionName = 'veritas_factcheck';
+    this.isAvailable = false;
+    this.similarityThreshold = 0.85;
+    this.maxResults = 5;
+
+    // Initialize connection check
+    this.checkConnection();
+  }
+
+  async checkConnection() {
+    try {
+      const response = await fetch(`${this.baseUrl}/collections`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      this.isAvailable = response.ok;
+
+      if (this.isAvailable) {
+        console.log('✅ Qdrant connection established');
+        await this.ensureCollection();
+      } else {
+        console.log('⚠️ Qdrant not available, using LLM-only mode');
+      }
+    } catch (error) {
+      console.log('⚠️ Qdrant connection failed, using LLM-only mode:', error.message);
+      this.isAvailable = false;
+    }
+  }
+
+  async ensureCollection() {
+    try {
+      const checkResponse = await fetch(`${this.baseUrl}/collections/${this.collectionName}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      if (!checkResponse.ok) {
+        console.log('🔧 Creating Qdrant collection for fact-checking...');
+
+        const createResponse = await fetch(`${this.baseUrl}/collections/${this.collectionName}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            vectors: { size: 384, distance: 'Cosine' },
+            optimizers_config: { default_segment_number: 2 },
+            replication_factor: 1
+          })
+        });
+
+        if (createResponse.ok) {
+          console.log('✅ Qdrant collection created successfully');
+        } else {
+          throw new Error('Failed to create collection');
+        }
+      } else {
+        console.log('✅ Qdrant collection already exists');
+      }
+    } catch (error) {
+      console.error('❌ Error ensuring Qdrant collection:', error);
+      this.isAvailable = false;
+    }
+  }
+
+  async generateEmbeddings(text) {
+    try {
+      // Usar uma API de embeddings mais simples e confiável
+      const cleanText = text.substring(0, 500).replace(/\n/g, ' ').trim();
+
+      const response = await fetch('https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          inputs: cleanText,
+          options: {
+            wait_for_model: true
+          }
+        })
+      });
+
+      if (response.ok) {
+        const embeddings = await response.json();
+
+        // Verificar se recebemos embeddings válidos
+        if (Array.isArray(embeddings)) {
+          const vector = Array.isArray(embeddings[0]) ? embeddings[0] : embeddings;
+
+          if (vector && vector.length === 384) {
+            console.log('✅ Embeddings gerados com sucesso:', vector.length, 'dimensões');
+            return vector;
+          }
+        }
+
+        throw new Error('Invalid embedding format received');
+      } else {
+        const errorText = await response.text();
+        throw new Error(`API Error: ${response.status} - ${errorText}`);
+      }
+    } catch (error) {
+      console.warn('⚠️ Embedding generation failed:', error.message);
+
+      // Fallback: gerar embedding simples baseado em hash do texto
+      console.log('🔄 Using fallback embedding generation...');
+      return this.generateFallbackEmbedding(text);
+    }
+  }
+
+  generateFallbackEmbedding(text) {
+    // Gerar embedding simples de 384 dimensões baseado no texto
+    const vector = new Array(384).fill(0);
+    const cleanText = text.toLowerCase().replace(/[^a-z0-9\s]/g, '');
+
+    for (let i = 0; i < cleanText.length && i < 384; i++) {
+      const charCode = cleanText.charCodeAt(i);
+      vector[i % 384] += (charCode / 255) * Math.sin(i * 0.1);
+    }
+
+    // Normalizar o vetor
+    const magnitude = Math.sqrt(vector.reduce((sum, val) => sum + val * val, 0));
+    if (magnitude > 0) {
+      for (let i = 0; i < vector.length; i++) {
+        vector[i] = vector[i] / magnitude;
+      }
+    }
+
+    console.log('✅ Fallback embedding gerado:', vector.length, 'dimensões');
+    return vector;
+  }
+
+  async searchSimilar(text, threshold = null) {
+    if (!this.isAvailable) return null;
+
+    try {
+      const embeddings = await this.generateEmbeddings(text);
+      if (!embeddings) return null;
+
+      const searchThreshold = threshold || this.similarityThreshold;
+
+      const response = await fetch(`${this.baseUrl}/collections/${this.collectionName}/points/search`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          vector: embeddings,
+          limit: this.maxResults,
+          score_threshold: searchThreshold,
+          with_payload: true,
+          with_vector: false
+        })
+      });
+
+      if (response.ok) {
+        const results = await response.json();
+
+        if (results.result && results.result.length > 0) {
+          const bestMatch = results.result[0];
+          console.log(`🎯 Found similar content with score: ${bestMatch.score.toFixed(3)}`);
+
+          return {
+            score: bestMatch.score,
+            payload: bestMatch.payload,
+            fromCache: true
+          };
+        }
+      }
+
+      return null;
+    } catch (error) {
+      console.warn('⚠️ Qdrant search failed:', error.message);
+      return null;
+    }
+  }
+
+  async storeResult(text, analysis, metadata = {}) {
+    if (!this.isAvailable) return false;
+
+    try {
+      const embeddings = await this.generateEmbeddings(text);
+      if (!embeddings) return false;
+
+      const pointId = Date.now().toString();
+
+      const payload = {
+        original_text: text,
+        classification: analysis.classification,
+        score: analysis.score || analysis.confidence,
+        summary: analysis.summary,
+        reasoning: analysis.reasoning,
+        timestamp: new Date().toISOString(),
+        model_used: metadata.model || 'unknown',
+        url: metadata.url || '',
+        domain: metadata.domain || '',
+        text_length: text.length,
+        language: metadata.language || 'pt-BR'
+      };
+
+      const response = await fetch(`${this.baseUrl}/collections/${this.collectionName}/points`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          points: [{
+            id: pointId,
+            vector: embeddings,
+            payload: payload
+          }]
+        })
+      });
+
+      if (response.ok) {
+        console.log('✅ Fact-check result stored in Qdrant');
+        return true;
+      } else {
+        throw new Error('Failed to store in Qdrant');
+      }
+    } catch (error) {
+      console.warn('⚠️ Failed to store in Qdrant:', error.message);
+      return false;
+    }
+  }
+
+  async getStats() {
+    if (!this.isAvailable) return null;
+
+    try {
+      const response = await fetch(`${this.baseUrl}/collections/${this.collectionName}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return {
+          total_points: data.result.points_count,
+          indexed_points: data.result.indexed_vectors_count,
+          status: data.result.status
+        };
+      }
+    } catch (error) {
+      console.warn('⚠️ Failed to get Qdrant stats:', error.message);
+    }
+
+    return null;
+  }
+
+  setSimilarityThreshold(threshold) {
+    this.similarityThreshold = Math.max(0.1, Math.min(1.0, threshold));
+    console.log(`🎯 Similarity threshold set to: ${this.similarityThreshold}`);
+  }
+
+  isServiceAvailable() {
+    return this.isAvailable;
   }
 }
 
-// Initialize Qdrant on startup
-initializeQdrant();
+// Initialize Qdrant service
+qdrantService = new SimpleQdrantService();
 
 // Configuração padrão - apenas Groq AI
 const DEFAULT_CONFIG = {
@@ -85,10 +340,12 @@ Critérios:
 // Configurar listener de mensagens principal
 chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
   console.log('📨 Mensagem recebida:', request.action, request);
-  
+  console.log('🔍 Background script ativo e processando mensagem');
+
   (async () => {
     try {
       let response;
+      console.log('🔄 Iniciando processamento da ação:', request.action);
       
       switch (request.action) {
         case 'getConfiguration':

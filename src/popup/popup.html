@@ -119,11 +119,36 @@
         </h2>
 
         <div class="api-group">
-          <div class="api-status" id="qdrant-status"></div>
+          <div class="api-status" id="qdrant-status">
+            <span class="status-indicator loading"></span>
+            <span class="status-text">Verificando conexão...</span>
+          </div>
+
+          <button id="qdrant-refresh" class="btn-secondary" style="margin-top: 8px; font-size: 12px; padding: 4px 8px;">
+            🔄 Atualizar Status
+          </button>
+
+          <div id="qdrant-details" class="qdrant-details" style="display: none;">
+            <div class="qdrant-info">
+              <div class="qdrant-stat">
+                <span class="stat-label">Itens no cache:</span>
+                <span class="stat-value" id="qdrant-items">-</span>
+              </div>
+              <div class="qdrant-stat">
+                <span class="stat-label">Threshold similaridade:</span>
+                <span class="stat-value" id="qdrant-threshold">-</span>
+              </div>
+              <div class="qdrant-stat">
+                <span class="stat-label">Status da coleção:</span>
+                <span class="stat-value" id="qdrant-collection-status">-</span>
+              </div>
+            </div>
+          </div>
+
           <p class="api-help">
             O cache inteligente usa similaridade semântica para fornecer respostas mais rápidas para conteúdo similar já verificado.
             <br><strong>Opcional:</strong> Funciona sem Qdrant, usando apenas o LLM.
-            <br><small>Para ativar: instale Qdrant localmente em localhost:6333</small>
+            <br><small>Para ativar: <code>docker run -p 6333:6333 qdrant/qdrant</code></small>
           </p>
         </div>
       </section>

@@ -55,6 +55,7 @@ class PopupManager {
 
     // Qdrant status
     this.elements.qdrantStatus = document.getElementById('qdrant-status');
+    this.elements.qdrantRefresh = document.getElementById('qdrant-refresh');
 
     // Preference inputs
     this.elements.languageSelect = document.getElementById('language-select');
@@ -172,7 +173,16 @@ class PopupManager {
     } else {
       console.error('❌ Botão Salvar não encontrado');
     }
-    
+
+    // Qdrant refresh button
+    if (this.elements.qdrantRefresh) {
+      this.elements.qdrantRefresh.addEventListener('click', () => {
+        console.log('🔄 Botão Qdrant Refresh clicado!');
+        this.updateQdrantStatus();
+      });
+      console.log('✅ Listener do botão Qdrant Refresh adicionado');
+    }
+
     // Keyboard shortcuts
     document.addEventListener('keydown', this.handleKeyboardShortcuts.bind(this));
   }
@@ -552,9 +562,17 @@ class PopupManager {
       return;
     }
 
+    const qdrantDetails = document.getElementById('qdrant-details');
+    const qdrantItems = document.getElementById('qdrant-items');
+    const qdrantThreshold = document.getElementById('qdrant-threshold');
+    const qdrantCollectionStatus = document.getElementById('qdrant-collection-status');
+
     try {
       // Mostrar status de carregamento
-      this.elements.qdrantStatus.innerHTML = '<span class="status-indicator loading"></span>Verificando cache...';
+      this.elements.qdrantStatus.innerHTML = `
+        <span class="status-indicator loading"></span>
+        <span class="status-text">Verificando conexão...</span>
+      `;
 
       // Solicitar estatísticas do Qdrant via background script
       const response = await this.sendMessage('getQdrantStats', {});
@@ -562,25 +580,48 @@ class PopupManager {
       if (response && response.success && response.data.available) {
         // Qdrant disponível
         const stats = response.data;
+
         this.elements.qdrantStatus.innerHTML = `
           <span class="status-indicator active"></span>
-          Cache Ativo (${stats.total_points || 0} itens)
+          <span class="status-text">🟢 Conectado (localhost:6333)</span>
         `;
+
+        // Mostrar detalhes
+        if (qdrantDetails) {
+          qdrantDetails.style.display = 'block';
+
+          if (qdrantItems) qdrantItems.textContent = stats.total_points || 0;
+          if (qdrantThreshold) qdrantThreshold.textContent = `${Math.round((stats.similarity_threshold || 0.85) * 100)}%`;
+          if (qdrantCollectionStatus) qdrantCollectionStatus.textContent = stats.status || 'active';
+        }
+
         console.log('✅ Qdrant disponível:', stats);
       } else {
         // Qdrant não disponível
         this.elements.qdrantStatus.innerHTML = `
           <span class="status-indicator warning"></span>
-          Cache Offline (Opcional)
+          <span class="status-text">🟡 Offline (Opcional)</span>
         `;
-        console.log('⚠️ Qdrant não disponível');
+
+        // Esconder detalhes
+        if (qdrantDetails) {
+          qdrantDetails.style.display = 'none';
+        }
+
+        console.log('⚠️ Qdrant não disponível:', response?.data?.message || 'Sem resposta');
       }
     } catch (error) {
       console.error('❌ Erro ao verificar Qdrant:', error);
+
       this.elements.qdrantStatus.innerHTML = `
         <span class="status-indicator error"></span>
-        Cache Indisponível
+        <span class="status-text">🔴 Erro de Conexão</span>
       `;
+
+      // Esconder detalhes
+      if (qdrantDetails) {
+        qdrantDetails.style.display = 'none';
+      }
     }
   }
   
