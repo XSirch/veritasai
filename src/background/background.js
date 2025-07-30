@@ -422,7 +422,11 @@ class SimpleQdrantService {
 
       console.log('✅ Valid embeddings generated for storage:', embeddings.length, 'dimensions');
 
-      const pointId = `veritas_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+      // Qdrant requires point IDs to be either unsigned integers or UUIDs
+      // Using timestamp as unsigned integer for simplicity and uniqueness
+      const pointId = Date.now();
+
+      console.log('🆔 Generated valid point ID:', pointId, '(unsigned integer)');
 
       const payload = {
         original_text: text.substring(0, 1000), // Limit text length
